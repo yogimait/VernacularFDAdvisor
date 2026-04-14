@@ -28,25 +28,25 @@ export function ChatMessages({
     }
   }, [messages, isLoading]);
 
-  if (messages.length === 0) {
-    return <WelcomeScreen onSuggestionClick={onSuggestionClick} />;
-  }
-
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0">
-      <div className="flex flex-col gap-4 px-4 py-4 sm:px-6">
-        {messages.map((message) => (
-          <ChatBubble
-            key={message.id}
-            message={message}
-            onActionClick={onActionClick}
-          />
-        ))}
+      {messages.length === 0 ? (
+        <WelcomeScreen onSuggestionClick={onSuggestionClick} />
+      ) : (
+        <div className="flex flex-col gap-4 px-4 py-4 sm:px-6">
+          {messages.map((message) => (
+            <ChatBubble
+              key={message.id}
+              message={message}
+              onActionClick={onActionClick}
+            />
+          ))}
 
-        {isLoading && <TypingIndicator />}
+          {isLoading && <TypingIndicator />}
 
-        <div ref={bottomRef} aria-hidden="true" />
-      </div>
+          <div ref={bottomRef} aria-hidden="true" />
+        </div>
+      )}
     </div>
   );
 }

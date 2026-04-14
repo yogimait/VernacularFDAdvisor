@@ -8,6 +8,10 @@ import {
 } from "@remixicon/react";
 import type { Message, StructuredResponse } from "@/types/chat";
 import { useState } from "react";
+import { FDBookingCard } from "./fd-booking-card";
+import { encodeBookingCommand } from "@/lib/fd-booking-flow";
+import { useLanguage } from "@/hooks/use-language";
+import { pickLocalized } from "@/lib/i18n";
 
 interface ChatBubbleProps {
   message: Message;
@@ -74,13 +78,45 @@ function StructuredCard({
   data: StructuredResponse;
   onActionClick?: (text: string) => void;
 }) {
+  const { language } = useLanguage();
+  const text = pickLocalized(language, {
+    english: {
+      explanation: "Explanation",
+      example: "Example",
+      recommendations: "Recommendations",
+      tapToBook: "Tap to start guided booking",
+      keyPoints: "Key Points",
+      nextStep: "Next Step",
+    },
+    hindi: {
+      explanation: "समझाइश",
+      example: "उदाहरण",
+      recommendations: "सुझाव",
+      tapToBook: "गाइडेड बुकिंग शुरू करने के लिए टैप करें",
+      keyPoints: "मुख्य बिंदु",
+      nextStep: "अगला कदम",
+    },
+    hinglish: {
+      explanation: "Explanation",
+      example: "Example",
+      recommendations: "Recommendations",
+      tapToBook: "Guided booking start karne ke liye tap karein",
+      keyPoints: "Key Points",
+      nextStep: "Next Step",
+    },
+  });
+
+  if (data.type === "booking_flow" && data.bookingFlow) {
+    return <FDBookingCard flow={data.bookingFlow} onActionClick={onActionClick} />;
+  }
+
   return (
     <div className="space-y-3">
       {/* Explanation */}
       {data.explanation && (
         <div>
           <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-primary">
-            💡 Explanation
+            💡 {text.explanation}
           </p>
           <p className="text-[0.8125rem] leading-relaxed text-card-foreground">
             {data.explanation}
@@ -92,7 +128,7 @@ function StructuredCard({
       {data.example && (
         <div className="rounded-lg bg-primary/5 border border-primary/10 px-3 py-2.5">
           <p className="mb-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-primary">
-            📌 Example
+            📌 {text.example}
           </p>
           <p className="text-[0.8125rem] leading-relaxed text-card-foreground">
             {data.example}
@@ -104,14 +140,18 @@ function StructuredCard({
       {data.recommendations && data.recommendations.length > 0 && (
         <div className="space-y-2">
           <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-primary">
-            🏦 Recommendations
+            🏦 {text.recommendations}
           </p>
           {data.recommendations.map((rec, i) => (
             <button
               key={i}
               onClick={() =>
                 onActionClick?.(
-                  `Tell me more about ${rec.bank} FD at ${rec.rate}%`
+                  encodeBookingCommand({
+                    type: "START_FROM_RECOMMENDATION",
+                    bank: rec.bank,
+                    tenureMonths: rec.tenure,
+                  })
                 )
               }
               className="flex w-full items-start gap-3 rounded-lg border border-border bg-background/50 px-3 py-2.5 text-left transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 active:scale-[0.98] group"
@@ -139,6 +179,9 @@ function StructuredCard({
                     {rec.reason}
                   </p>
                 )}
+                <p className="mt-1 text-[0.6875rem] font-medium text-primary/80">
+                  {text.tapToBook}
+                </p>
               </div>
             </button>
           ))}
@@ -149,7 +192,7 @@ function StructuredCard({
       {data.points && data.points.length > 0 && (
         <div>
           <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-primary">
-            📊 Key Points
+            📊 {text.keyPoints}
           </p>
           <ul className="space-y-0.5">
             {data.points.map((point, i) => (
@@ -174,7 +217,7 @@ function StructuredCard({
           <RiArrowRightLine className="size-4 shrink-0 text-primary mt-0.5 transition-transform group-hover:translate-x-0.5" />
           <div>
             <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-primary mb-0.5">
-              Next Step
+              {text.nextStep}
             </p>
             <p className="text-[0.8125rem] leading-relaxed text-foreground">
               {data.nextStep}
@@ -188,12 +231,18 @@ function StructuredCard({
 
 // ── Feedback buttons (Phase 10 UX) ──
 function FeedbackButtons() {
+  const { language } = useLanguage();
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
+  const text = pickLocalized(language, {
+    english: { thanks: "Thanks!", improve: "Noted, will improve!", helpful: "Helpful", notHelpful: "Not helpful" },
+    hindi: { thanks: "धन्यवाद!", improve: "नोट किया, बेहतर करेंगे!", helpful: "उपयोगी", notHelpful: "उपयोगी नहीं" },
+    hinglish: { thanks: "Thanks!", improve: "Noted, improve karenge!", helpful: "Helpful", notHelpful: "Helpful nahi" },
+  });
 
   if (feedback) {
     return (
       <span className="text-[0.625rem] text-muted-foreground">
-        {feedback === "up" ? "👍 Thanks!" : "Noted, will improve!"}
+        {feedback === "up" ? `👍 ${text.thanks}` : text.improve}
       </span>
     );
   }
@@ -203,14 +252,14 @@ function FeedbackButtons() {
       <button
         onClick={() => setFeedback("up")}
         className="rounded p-0.5 text-muted-foreground/50 transition-colors hover:text-chart-1 hover:bg-chart-1/10"
-        aria-label="Helpful"
+        aria-label={text.helpful}
       >
         <RiThumbUpLine className="size-3" />
       </button>
       <button
         onClick={() => setFeedback("down")}
         className="rounded p-0.5 text-muted-foreground/50 transition-colors hover:text-destructive hover:bg-destructive/10"
-        aria-label="Not helpful"
+        aria-label={text.notHelpful}
       >
         <RiThumbDownLine className="size-3" />
       </button>

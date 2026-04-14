@@ -1,15 +1,27 @@
 import { RiRobot2Fill } from "@remixicon/react";
-
-const LOADING_TEXTS = [
-  "Analyzing your query...",
-  "Finding best options...",
-  "Thinking...",
-];
+import { useId } from "react";
+import { useLanguage } from "@/hooks/use-language";
+import { pickLocalized } from "@/lib/i18n";
 
 export function TypingIndicator() {
-  // Pick a random contextual loading text
-  const text =
-    LOADING_TEXTS[Math.floor(Math.random() * LOADING_TEXTS.length)];
+  const { language } = useLanguage();
+  const loadingTexts = pickLocalized(language, {
+    english: ["Analyzing your query...", "Finding best options...", "Thinking..."],
+    hindi: ["आपका प्रश्न समझ रहे हैं...", "बेहतरीन विकल्प ढूंढ रहे हैं...", "सोच रहे हैं..."],
+    hinglish: ["Aapka query analyze kar rahe hain...", "Best options dhoond rahe hain...", "Soch rahe hain..."],
+    marathi: ["तुमचा प्रश्न समजत आहोत...", "सर्वोत्तम पर्याय शोधत आहोत...", "विचार करत आहोत..."],
+    gujarati: ["તમારો પ્રશ્ન સમજીએ છીએ...", "શ્રેષ્ઠ વિકલ્પો શોધી રહ્યા છીએ...", "વિચાર કરી રહ્યા છીએ..."],
+    tamil: ["உங்கள் கேள்வியை பகுப்பாய்வு செய்கிறோம்...", "சிறந்த விருப்பங்களை தேடுகிறோம்...", "சிந்தித்து கொண்டிருக்கிறோம்..."],
+    bhojpuri: ["रउरा सवाल समझत बानी...", "सबसे बढ़िया विकल्प खोजत बानी...", "सोचत बानी..."],
+  });
+
+  const stableId = useId();
+  const index =
+    stableId
+      .split("")
+      .reduce((sum, char) => sum + char.charCodeAt(0), 0) %
+    loadingTexts.length;
+  const text = loadingTexts[index];
 
   return (
     <div className="flex w-full animate-[fadeInUp_0.3s_ease-out_both] gap-2.5">
