@@ -2,7 +2,12 @@
 
 import { useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
-import { RiArrowRightLine, RiBankLine, RiCheckboxCircleLine } from "@remixicon/react";
+import {
+  RiArrowLeftLine,
+  RiArrowRightLine,
+  RiBankLine,
+  RiCheckboxCircleLine,
+} from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -252,11 +257,68 @@ export function OpenFDPage() {
       quickTenure: "फटाफट अवधि",
     },
   });
+  const wizardText = pickLocalized(language, {
+    english: {
+      next: "Next",
+      back: "Back",
+      reviewDetails: "Review details",
+      quickAmount: "Quick amount",
+      bankHint: "Pick the bank where you want to open your FD.",
+      amountHint: "Use slider or quick buttons to choose your deposit.",
+      tenureHint: "Choose how long you can keep this amount parked.",
+      typeHint: "Cumulative gives full amount at maturity. Non-cumulative pays interest regularly.",
+      confirmHint: "Review your details once before starting booking.",
+      stepHints: [
+        "Start by selecting your preferred bank.",
+        "Enter deposit amount in a way that feels comfortable.",
+        "Choose FD duration based on your cash-flow need.",
+        "Pick how you want to receive returns.",
+        "Everything looks good. You can start booking now.",
+      ],
+    },
+    hindi: {
+      next: "आगे",
+      back: "पीछे",
+      reviewDetails: "विवरण देखें",
+      quickAmount: "त्वरित राशि",
+      bankHint: "जिस बैंक में FD खोलनी है, उसे चुनें।",
+      amountHint: "राशि चुनने के लिए स्लाइडर या त्वरित बटन इस्तेमाल करें।",
+      tenureHint: "अपनी जरूरत के हिसाब से अवधि चुनें।",
+      typeHint: "क्यूम्यूलेटिव में रकम मैच्योरिटी पर मिलती है। नॉन-क्यूम्यूलेटिव में ब्याज समय-समय पर मिलता है।",
+      confirmHint: "बुकिंग शुरू करने से पहले विवरण एक बार जांच लें।",
+      stepHints: [
+        "सबसे पहले अपना पसंदीदा बैंक चुनें।",
+        "आराम से अपनी जमा राशि चुनें।",
+        "अपनी जरूरत के अनुसार FD की अवधि तय करें।",
+        "रिटर्न लेने का तरीका चुनें।",
+        "सब सही है तो अब बुकिंग शुरू करें।",
+      ],
+    },
+    hinglish: {
+      next: "Next",
+      back: "Back",
+      reviewDetails: "Details review karo",
+      quickAmount: "Quick amount",
+      bankHint: "Jis bank me FD kholni hai woh select karo.",
+      amountHint: "Deposit choose karne ke liye slider ya quick buttons use karo.",
+      tenureHint: "Cash-flow need ke hisaab se duration choose karo.",
+      typeHint: "Cumulative me total maturity par milta hai. Non-cumulative me interest regular milta hai.",
+      confirmHint: "Booking start karne se pehle details ek baar check karo.",
+      stepHints: [
+        "Pehle apna preferred bank select karo.",
+        "Comfortable amount enter karo.",
+        "FD duration apni need ke hisaab se set karo.",
+        "Return ka type choose karo.",
+        "Sab ready hai, ab booking start kar sakte ho.",
+      ],
+    },
+  });
   const banks = useMemo(() => uniqueBanks(), []);
 
   const [bank, setBank] = useState(banks[0] ?? "");
   const [amount, setAmount] = useState(100000);
   const [tenureMonths, setTenureMonths] = useState(12);
+  const [currentStep, setCurrentStep] = useState(1);
   const [interestType, setInterestType] = useState<"cumulative" | "non-cumulative">(
     "cumulative"
   );
@@ -308,13 +370,51 @@ export function OpenFDPage() {
 
   const maxGrowthValue = Math.max(...growthPoints.map((point) => point.value), 1);
 
-  const currentStep = useMemo(() => {
-    if (!bank) return 1;
-    if (!amount) return 2;
-    if (!tenureMonths) return 3;
-    if (!interestType) return 4;
-    return 5;
-  }, [bank, amount, tenureMonths, interestType]);
+  const canMoveNext = useMemo(() => {
+    switch (currentStep) {
+      case 1:
+        return bank.trim().length > 0;
+      case 2:
+        return amount >= amountMin;
+      case 3:
+        return tenureMonths > 0;
+      case 4:
+        return Boolean(interestType);
+      default:
+        return true;
+    }
+  }, [amount, amountMin, bank, currentStep, interestType, tenureMonths]);
+
+  function goNext(): void {
+    if (!canMoveNext) {
+      return;
+    }
+
+    setCurrentStep((prev) => Math.min(prev + 1, STEPS.length));
+  }
+
+  function goBack(): void {
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
+  }
+
+  function handleStartBooking(): void {
+    openChatWithMessage(
+      router,
+      language === "hi"
+        ? `मुझे ${bank} में Rs ${amount} राशि के साथ ${tenureMonths} महीनों के लिए ${interestType} प्रकार की FD खोलनी है`
+        : language === "mr"
+          ? `मला ${bank} मध्ये Rs ${amount} रक्कमेसह ${tenureMonths} महिन्यांसाठी ${interestType} प्रकारची FD उघडायची आहे`
+          : language === "gu"
+            ? `મને ${bank}માં Rs ${amount} રકમ સાથે ${tenureMonths} મહિનાં માટે ${interestType} પ્રકારની FD ખોલવી છે`
+            : language === "ta"
+              ? `எனக்கு ${bank} வங்கியில் Rs ${amount} தொகைக்கு ${tenureMonths} மாதங்களுக்கு ${interestType} வகை FD திறக்க வேண்டும்`
+              : language === "bho"
+                ? `हमके ${bank} में Rs ${amount} राशि से ${tenureMonths} महीना खातिर ${interestType} टाइप FD खोलल बा`
+                : language === "hinglish"
+                  ? `Mujhe ${bank} me Rs ${amount} amount ke saath ${tenureMonths} months ke liye ${interestType} type FD open karni hai`
+                  : `I want to open FD in ${bank} with amount Rs ${amount}, duration ${tenureMonths} months, ${interestType} type`
+    );
+  }
 
   return (
     <div className="h-full min-h-0 overflow-y-auto bg-background">
@@ -329,155 +429,241 @@ export function OpenFDPage() {
               {text.description}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {STEPS.map((step, index) => {
-                const isDone = index + 1 <= currentStep;
+                const stepNumber = index + 1;
+                const isDone = stepNumber < currentStep;
+                const isCurrent = stepNumber === currentStep;
                 return (
                   <div
                     key={step}
                     className={`rounded-md border px-2 py-1.5 text-center text-[0.6875rem] font-medium ${
-                      isDone
+                      isDone || isCurrent
                         ? "border-primary/40 bg-primary/10 text-primary"
                         : "border-border bg-background/70 text-muted-foreground"
                     }`}
                   >
+                    <span className="mr-1 font-semibold">{stepNumber}.</span>
                     {text.stepLabels[index]}
                   </div>
                 );
               })}
             </div>
+            <Progress value={(currentStep / STEPS.length) * 100} className="h-2" />
+            <p className="text-xs text-muted-foreground">{wizardText.stepHints[currentStep - 1]}</p>
           </CardContent>
         </Card>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr,0.8fr]">
           <Card className="border border-border bg-card/70">
             <CardHeader>
-              <CardTitle className="text-sm">{text.bookingDetails}</CardTitle>
+              <CardTitle className="text-sm">
+                {text.step} {currentStep}: {text.stepLabels[currentStep - 1]}
+              </CardTitle>
+              <CardDescription>{wizardText.stepHints[currentStep - 1]}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div>
-                <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {text.selectBank}
-                </p>
-                <select
-                  value={bank}
-                  onChange={(event) => setBank(event.target.value)}
-                  className={filterSelectClassName}
-                >
-                  {banks.map((option) => (
-                    <option key={option} value={option} className="bg-popover text-popover-foreground">
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {text.amount}
-                </p>
-                <input
-                  type="number"
-                  min={amountMin}
-                  step={1000}
-                  value={amount}
-                  onChange={(event) => setAmount(Number(event.target.value) || 0)}
-                  className="h-8 w-full rounded-md border border-input bg-input/20 px-2 text-xs"
-                />
-                <input
-                  type="range"
-                  min={amountMin}
-                  max={amountMax}
-                  step={1000}
-                  value={clampedAmount}
-                  onChange={(event) => setAmount(Number(event.target.value))}
-                  className="fd-range-slider mt-2 w-full"
-                  style={{ "--range-progress": `${amountProgress}%` } as CSSProperties}
-                />
-              </div>
-
-              <div>
-                <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {text.duration}
-                </p>
-                <select
-                  value={String(tenureMonths)}
-                  onChange={(event) => setTenureMonths(Number(event.target.value))}
-                  className={filterSelectClassName}
-                >
-                  {[6, 12, 24, 36, 60].map((months) => (
-                    <option key={months} value={months} className="bg-popover text-popover-foreground">
-                      {months} {text.months}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {text.quickTenure}
-                </p>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {[6, 12, 24, 36, 60].map((months) => (
-                    <button
-                      key={`quick-tenure-${months}`}
-                      onClick={() => setTenureMonths(months)}
-                      className={`rounded-full border px-2 py-0.5 text-[0.6875rem] transition-colors ${
-                        tenureMonths === months
-                          ? "border-primary/40 bg-primary/10 text-primary"
-                          : "border-border bg-background/70 text-muted-foreground"
-                      }`}
-                    >
-                      {months} {text.months}
-                    </button>
-                  ))}
+              {currentStep === 1 ? (
+                <div>
+                  <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {text.selectBank}
+                  </p>
+                  <select
+                    value={bank}
+                    onChange={(event) => setBank(event.target.value)}
+                    className={filterSelectClassName}
+                  >
+                    {banks.map((option) => (
+                      <option
+                        key={option}
+                        value={option}
+                        className="bg-popover text-popover-foreground"
+                      >
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1.5 text-xs text-muted-foreground">{wizardText.bankHint}</p>
                 </div>
-              </div>
+              ) : null}
 
-              <div>
-                <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {text.interestType}
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {(["cumulative", "non-cumulative"] as const).map((type) => (
-                    <button
-                      key={type}
-                      onClick={() => setInterestType(type)}
-                      className={`rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${
-                        interestType === type
-                          ? "border-primary/40 bg-primary/10 text-primary"
-                          : "border-border bg-background/70 text-muted-foreground"
-                      }`}
-                    >
+              {currentStep === 2 ? (
+                <div>
+                  <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {text.amount}
+                  </p>
+                  <input
+                    type="number"
+                    min={amountMin}
+                    step={1000}
+                    value={amount}
+                    onChange={(event) => setAmount(Number(event.target.value) || 0)}
+                    className="h-8 w-full rounded-md border border-input bg-input/20 px-2 text-xs"
+                  />
+                  <p className="mt-1.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {wizardText.quickAmount}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {[50000, 100000, 200000, 500000].map((quickAmount) => (
+                      <button
+                        key={`quick-amount-${quickAmount}`}
+                        type="button"
+                        onClick={() => setAmount(quickAmount)}
+                        className={`rounded-full border px-2 py-0.5 text-[0.6875rem] transition-colors ${
+                          amount === quickAmount
+                            ? "border-primary/40 bg-primary/10 text-primary"
+                            : "border-border bg-background/70 text-muted-foreground"
+                        }`}
+                      >
+                        Rs {quickAmount.toLocaleString("en-IN")}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="range"
+                    min={amountMin}
+                    max={amountMax}
+                    step={1000}
+                    value={clampedAmount}
+                    onChange={(event) => setAmount(Number(event.target.value))}
+                    className="fd-range-slider mt-2 w-full"
+                    style={{ "--range-progress": `${amountProgress}%` } as CSSProperties}
+                  />
+                  <p className="mt-1.5 text-xs text-muted-foreground">{wizardText.amountHint}</p>
+                </div>
+              ) : null}
+
+              {currentStep === 3 ? (
+                <div>
+                  <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {text.duration}
+                  </p>
+                  <select
+                    value={String(tenureMonths)}
+                    onChange={(event) => setTenureMonths(Number(event.target.value))}
+                    className={filterSelectClassName}
+                  >
+                    {[6, 12, 24, 36, 60].map((months) => (
+                      <option
+                        key={months}
+                        value={months}
+                        className="bg-popover text-popover-foreground"
+                      >
+                        {months} {text.months}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {text.quickTenure}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {[6, 12, 24, 36, 60].map((months) => (
+                      <button
+                        key={`quick-tenure-${months}`}
+                        type="button"
+                        onClick={() => setTenureMonths(months)}
+                        className={`rounded-full border px-2 py-0.5 text-[0.6875rem] transition-colors ${
+                          tenureMonths === months
+                            ? "border-primary/40 bg-primary/10 text-primary"
+                            : "border-border bg-background/70 text-muted-foreground"
+                        }`}
+                      >
+                        {months} {text.months}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-xs text-muted-foreground">{wizardText.tenureHint}</p>
+                </div>
+              ) : null}
+
+              {currentStep === 4 ? (
+                <div>
+                  <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {text.interestType}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["cumulative", "non-cumulative"] as const).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setInterestType(type)}
+                        className={`rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${
+                          interestType === type
+                            ? "border-primary/40 bg-primary/10 text-primary"
+                            : "border-border bg-background/70 text-muted-foreground"
+                        }`}
+                      >
                         {type === "cumulative" ? text.cumulative : text.nonCumulative}
-                    </button>
-                  ))}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-xs text-muted-foreground">{wizardText.typeHint}</p>
                 </div>
-              </div>
+              ) : null}
+
+              {currentStep === 5 ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">{wizardText.confirmHint}</p>
+                  <div className="space-y-1 rounded-md border border-border bg-background/70 p-3 text-xs">
+                    <p className="flex items-center justify-between gap-3">
+                      <span className="text-muted-foreground">{text.selectBank}</span>
+                      <span className="font-semibold text-foreground">{bank}</span>
+                    </p>
+                    <p className="flex items-center justify-between gap-3">
+                      <span className="text-muted-foreground">{text.amount}</span>
+                      <span className="font-semibold text-foreground">Rs {amount.toLocaleString("en-IN")}</span>
+                    </p>
+                    <p className="flex items-center justify-between gap-3">
+                      <span className="text-muted-foreground">{text.duration}</span>
+                      <span className="font-semibold text-foreground">{tenureMonths} {text.months}</span>
+                    </p>
+                    <p className="flex items-center justify-between gap-3">
+                      <span className="text-muted-foreground">{text.interestType}</span>
+                      <span className="font-semibold text-foreground">
+                        {interestType === "cumulative" ? text.cumulative : text.nonCumulative}
+                      </span>
+                    </p>
+                    <p className="flex items-center justify-between gap-3">
+                      <span className="text-muted-foreground">{text.rateUsed}</span>
+                      <span className="font-semibold text-foreground">{effectiveRate}% p.a.</span>
+                    </p>
+                    {interestType === "cumulative" ? (
+                      <p className="flex items-center justify-between gap-3">
+                        <span className="text-muted-foreground">{text.maturity}</span>
+                        <span className="font-semibold text-foreground">
+                          Rs {projection.maturityAmount.toLocaleString("en-IN")}
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="flex items-center justify-between gap-3">
+                        <span className="text-muted-foreground">{text.yearlyPayout}</span>
+                        <span className="font-semibold text-foreground">
+                          Rs {yearlyPayout.toLocaleString("en-IN")}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
-            <CardFooter>
-              <Button
-                className="gap-1"
-                onClick={() =>
-                  openChatWithMessage(
-                    router,
-                    language === "hi"
-                      ? `मुझे ${bank} में Rs ${amount} राशि के साथ ${tenureMonths} महीनों के लिए ${interestType} प्रकार की FD खोलनी है`
-                      : language === "mr"
-                        ? `मला ${bank} मध्ये Rs ${amount} रक्कमेसह ${tenureMonths} महिन्यांसाठी ${interestType} प्रकारची FD उघडायची आहे`
-                        : language === "gu"
-                          ? `મને ${bank}માં Rs ${amount} રકમ સાથે ${tenureMonths} મહિનાં માટે ${interestType} પ્રકારની FD ખોલવી છે`
-                          : language === "ta"
-                            ? `எனக்கு ${bank} வங்கியில் Rs ${amount} தொகைக்கு ${tenureMonths} மாதங்களுக்கு ${interestType} வகை FD திறக்க வேண்டும்`
-                            : language === "bho"
-                              ? `हमके ${bank} में Rs ${amount} राशि से ${tenureMonths} महीना खातिर ${interestType} टाइप FD खोलल बा`
-                      : language === "hinglish"
-                        ? `Mujhe ${bank} me Rs ${amount} amount ke saath ${tenureMonths} months ke liye ${interestType} type FD open karni hai`
-                        : `I want to open FD in ${bank} with amount Rs ${amount}, duration ${tenureMonths} months, ${interestType} type`
-                  )
-                }
-              >
-                {text.startBooking}
-                <RiArrowRightLine className="size-3.5" />
+            <CardFooter className="flex items-center justify-between gap-2">
+              <Button variant="outline" onClick={goBack} disabled={currentStep === 1} className="gap-1">
+                <RiArrowLeftLine className="size-3.5" />
+                {wizardText.back}
               </Button>
+
+              {currentStep < STEPS.length ? (
+                <Button className="gap-1" onClick={goNext} disabled={!canMoveNext}>
+                  {currentStep === STEPS.length - 1 ? wizardText.reviewDetails : wizardText.next}
+                  <RiArrowRightLine className="size-3.5" />
+                </Button>
+              ) : (
+                <Button className="gap-1" onClick={handleStartBooking}>
+                  {text.startBooking}
+                  <RiArrowRightLine className="size-3.5" />
+                </Button>
+              )}
             </CardFooter>
           </Card>
 

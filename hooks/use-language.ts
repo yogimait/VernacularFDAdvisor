@@ -4,7 +4,7 @@ import { useCallback, useSyncExternalStore } from "react";
 
 export type Language = "en" | "hi" | "hinglish" | "mr" | "gu" | "ta" | "bho";
 
-const STORAGE_KEY = "fd-advisor-language";
+export const LANGUAGE_STORAGE_KEY = "fd-advisor-language";
 const LANGUAGE_SYNC_EVENT = "fdadvisor:language-sync";
 const SUPPORTED_LANGUAGES: Language[] = [
   "en",
@@ -47,7 +47,7 @@ function readStoredLanguage(): Language {
     return "en";
   }
 
-  const stored = window.localStorage.getItem(STORAGE_KEY);
+  const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
   return normalizeLanguage(stored) ?? "en";
 }
 
@@ -57,7 +57,7 @@ function subscribeLanguage(onStoreChange: () => void): () => void {
   }
 
   const handleStorage = (event: StorageEvent) => {
-    if (event.key === STORAGE_KEY) {
+    if (event.key === LANGUAGE_STORAGE_KEY) {
       onStoreChange();
     }
   };
@@ -87,7 +87,7 @@ export function useLanguage() {
       return;
     }
 
-    window.localStorage.setItem(STORAGE_KEY, lang);
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
     window.dispatchEvent(new Event(LANGUAGE_SYNC_EVENT));
   }, []);
 

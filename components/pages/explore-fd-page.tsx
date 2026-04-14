@@ -60,6 +60,9 @@ export function ExploreFDPage() {
     english: {
       title: "Explore FD Options",
       description: "Browse fixed deposit cards using filters, sorting, and quick actions.",
+      aiShortcutTitle: "Not sure what to choose?",
+      aiShortcutDescription: "Use filters or let AI guide you in 1 minute.",
+      askAiRecommendation: "Ask AI for recommendation",
       amount: "Amount",
       duration: "Duration",
       anyDuration: "Any duration",
@@ -108,6 +111,9 @@ export function ExploreFDPage() {
     hindi: {
       title: "FD विकल्प खोजें",
       description: "फिल्टर, सॉर्ट और क्विक एक्शन से FD कार्ड देखें।",
+      aiShortcutTitle: "समझ नहीं आ रहा क्या चुनें?",
+      aiShortcutDescription: "फिल्टर इस्तेमाल करें या AI से 1 मिनट में गाइड लें।",
+      askAiRecommendation: "AI से सुझाव लें",
       amount: "राशि",
       duration: "अवधि",
       anyDuration: "कोई भी अवधि",
@@ -156,6 +162,9 @@ export function ExploreFDPage() {
     hinglish: {
       title: "Explore FD Options",
       description: "Filters, sorting aur quick actions ke saath FD cards browse karo.",
+      aiShortcutTitle: "Samajh nahi aa raha kya choose karein?",
+      aiShortcutDescription: "Filters use karo ya AI se 1 minute me guidance lo.",
+      askAiRecommendation: "AI se recommendation lo",
       amount: "Amount",
       duration: "Duration",
       anyDuration: "Any duration",
@@ -204,6 +213,9 @@ export function ExploreFDPage() {
     marathi: {
       title: "FD पर्याय शोधा",
       description: "फिल्टर, सॉर्टिंग आणि क्विक अ‍ॅक्शनने FD कार्ड्स पाहा.",
+      aiShortcutTitle: "काय निवडायचे ते ठरत नाहीये?",
+      aiShortcutDescription: "फिल्टर्स वापरा किंवा AI कडून 1 मिनिटात मार्गदर्शन घ्या.",
+      askAiRecommendation: "AI शिफारस घ्या",
       amount: "रक्कम",
       duration: "कालावधी",
       anyDuration: "कोणताही कालावधी",
@@ -252,6 +264,9 @@ export function ExploreFDPage() {
     gujarati: {
       title: "FD વિકલ્પો શોધો",
       description: "ફિલ્ટર, સોર્ટિંગ અને ક્વિક એક્શન સાથે FD કાર્ડ્સ બ્રાઉઝ કરો.",
+      aiShortcutTitle: "શું પસંદ કરવું તે સમજાતું નથી?",
+      aiShortcutDescription: "ફિલ્ટર્સ ઉપયોગ કરો અથવા AI પાસેથી 1 મિનિટમાં માર્ગદર્શન લો.",
+      askAiRecommendation: "AI ભલામણ મેળવો",
       amount: "રકમ",
       duration: "અવધિ",
       anyDuration: "કોઈપણ અવધિ",
@@ -300,6 +315,9 @@ export function ExploreFDPage() {
     tamil: {
       title: "FD விருப்பங்களை ஆராயுங்கள்",
       description: "வடிகட்டி, வரிசைப்படுத்தல் மற்றும் விரைவு செயல்களுடன் FD கார்டுகளை பார்க்கவும்.",
+      aiShortcutTitle: "எதை தேர்வு செய்வது தெரியவில்லையா?",
+      aiShortcutDescription: "வடிகட்டிகளை பயன்படுத்துங்கள் அல்லது AI வழிகாட்டலை 1 நிமிடத்தில் பெறுங்கள்.",
+      askAiRecommendation: "AI பரிந்துரை பெறுங்கள்",
       amount: "தொகை",
       duration: "காலம்",
       anyDuration: "எந்த காலமும்",
@@ -348,6 +366,9 @@ export function ExploreFDPage() {
     bhojpuri: {
       title: "FD विकल्प खोजीं",
       description: "फिल्टर, सॉर्टिंग आ क्विक एक्शन से FD कार्ड देखीं।",
+      aiShortcutTitle: "का चुनीं, ई समझ ना आवत बा?",
+      aiShortcutDescription: "फिल्टर इस्तेमाल करीं या AI से 1 मिनट में मार्गदर्शन लीं।",
+      askAiRecommendation: "AI से सुझाव लीं",
       amount: "राशि",
       duration: "अवधि",
       anyDuration: "कवनो अवधि",
@@ -502,9 +523,39 @@ export function ExploreFDPage() {
     return sorted;
   }, [amount, tenureFilter, riskLevel, bankType, sortBy]);
 
+  const aiRecommendationPrompt = pickLocalized(language, {
+    english: "Suggest the best FD option for me",
+    hindi: "मेरे लिए सबसे अच्छा FD विकल्प सुझाओ",
+    hinglish: "Mere liye best FD option suggest karo",
+    marathi: "माझ्यासाठी सर्वोत्तम FD पर्याय सुचवा",
+    gujarati: "મારા માટે શ્રેષ્ઠ FD વિકલ્પ સૂચવો",
+    tamil: "எனக்கான சிறந்த FD விருப்பத்தை பரிந்துரையுங்கள்",
+    bhojpuri: "हमरा खातिर सबसे बढ़िया FD विकल्प सुझाईं",
+  });
+
   return (
     <div className="h-full min-h-0 overflow-y-auto bg-background">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pb-6 pt-8 sm:px-6">
+        <Card className="border border-primary/30 bg-primary/5">
+          <CardContent className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">{text.aiShortcutTitle}</p>
+              <p className="text-xs text-muted-foreground">{text.aiShortcutDescription}</p>
+            </div>
+            <Button
+              className="shrink-0"
+              onClick={() =>
+                openChatWithMessage(
+                  router,
+                  aiRecommendationPrompt
+                )
+              }
+            >
+              {text.askAiRecommendation}
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card className="border border-border bg-card/80">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

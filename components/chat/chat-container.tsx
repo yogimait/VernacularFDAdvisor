@@ -47,6 +47,8 @@ const CHAT_MODES = [
   { key: "calculator" },
 ] as const;
 
+const RESPONSE_MODE_STORAGE_KEY = "fdadvisor:response-mode";
+
 type ChatMode = (typeof CHAT_MODES)[number]["key"];
 
 function generateId(): string {
@@ -86,6 +88,7 @@ export function ChatContainer() {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [responseMode, setResponseMode] = useState<"simple" | "detailed">("simple");
   const [activeMode, setActiveMode] = useState<ChatMode>("ask");
   const [bookingState, setBookingState] = useState<FDBookingState | null>(null);
   const { language, setLanguage } = useLanguage();
@@ -404,6 +407,8 @@ export function ChatContainer() {
           body: JSON.stringify({
             message: trimmed,
             history,
+            languagePreference: language,
+            responseMode,
           }),
         });
 
@@ -467,6 +472,7 @@ export function ChatContainer() {
       handleBookingCommand,
       messages,
       language,
+      responseMode,
       text.bookingUpdatedFallback,
       text.errorFallback,
       text.resumeFallback,
@@ -591,6 +597,25 @@ export function ChatContainer() {
       return;
     }
 
+    const storedMode = window.localStorage.getItem(RESPONSE_MODE_STORAGE_KEY);
+    if (storedMode === "simple" || storedMode === "detailed") {
+      setResponseMode(storedMode);
+    }
+  }, []);
+
+  const handleResponseModeChange = useCallback((mode: "simple" | "detailed") => {
+    setResponseMode(mode);
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(RESPONSE_MODE_STORAGE_KEY, mode);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
     if (bookingState) {
       window.sessionStorage.setItem(BOOKING_STATE_KEY, JSON.stringify(bookingState));
       dispatchSessionSync();
@@ -634,6 +659,8 @@ export function ChatContainer() {
         onChange={setInputValue}
         onSend={handleSend}
         onVoiceResult={handleVoiceResult}
+        responseMode={responseMode}
+        onResponseModeChange={handleResponseModeChange}
         onCalculatorOpen={() => setIsCalculatorOpen(true)}
         isLoading={isLoading}
         hasMessages={messages.length > 0}

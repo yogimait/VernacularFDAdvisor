@@ -1,5 +1,6 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import {
   RiRobot2Fill,
   RiSunLine,
@@ -21,6 +22,11 @@ interface ChatHeaderProps {
 
 export function ChatHeader({ language, onLanguageChange }: ChatHeaderProps) {
   const { resolvedTheme, setTheme } = useTheme();
+  const isHydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const text = pickLocalized(language, {
     english: {
       subtitle: "Your Multilingual Financial Guide",
@@ -138,7 +144,7 @@ export function ChatHeader({ language, onLanguageChange }: ChatHeaderProps) {
         id="theme-toggle"
         className="shrink-0"
       >
-        {resolvedTheme === "dark" ? (
+        {isHydrated && resolvedTheme === "dark" ? (
           <RiSunLine className="size-4" />
         ) : (
           <RiMoonClearLine className="size-4" />

@@ -34,6 +34,7 @@ interface SidebarProps {
 }
 
 interface SidebarItem {
+  group: "learn" | "action" | "tools";
   labels: LocalizedValues<string>;
   route: string;
   icon: ComponentType<{ className?: string }>;
@@ -41,6 +42,7 @@ interface SidebarItem {
 
 const NAV_ITEMS: SidebarItem[] = [
   {
+    group: "learn",
     labels: {
       english: "Home",
       hindi: "होम",
@@ -54,6 +56,7 @@ const NAV_ITEMS: SidebarItem[] = [
     icon: RiHomeLine,
   },
   {
+    group: "learn",
     labels: {
       english: "Chat",
       hindi: "चैट",
@@ -67,6 +70,7 @@ const NAV_ITEMS: SidebarItem[] = [
     icon: RiChat3Line,
   },
   {
+    group: "learn",
     labels: {
       english: "Explore FD",
       hindi: "FD खोजें",
@@ -80,6 +84,7 @@ const NAV_ITEMS: SidebarItem[] = [
     icon: RiBankLine,
   },
   {
+    group: "action",
     labels: {
       english: "Open FD",
       hindi: "FD खोलें",
@@ -93,6 +98,7 @@ const NAV_ITEMS: SidebarItem[] = [
     icon: RiMoneyDollarCircleLine,
   },
   {
+    group: "tools",
     labels: {
       english: "Compare",
       hindi: "तुलना",
@@ -106,6 +112,7 @@ const NAV_ITEMS: SidebarItem[] = [
     icon: RiBankLine,
   },
   {
+    group: "tools",
     labels: {
       english: "Calculator",
       hindi: "कैलकुलेटर",
@@ -119,6 +126,7 @@ const NAV_ITEMS: SidebarItem[] = [
     icon: RiCalculatorLine,
   },
   {
+    group: "tools",
     labels: {
       english: "Profile",
       hindi: "प्रोफाइल",
@@ -132,6 +140,8 @@ const NAV_ITEMS: SidebarItem[] = [
     icon: RiUserLine,
   },
 ];
+
+const NAV_GROUP_ORDER: Array<SidebarItem["group"]> = ["learn", "action", "tools"];
 
 export function Sidebar({
   collapsed,
@@ -152,44 +162,70 @@ export function Sidebar({
       switchLanguage: "Switch Language",
       language: "Language",
       toggleSidebar: "Toggle sidebar",
+      learnExplore: "Learn & Explore",
+      takeAction: "Take Action",
+      tools: "Tools",
     },
     hindi: {
       subtitle: "फिनटेक असिस्टेंट",
       switchLanguage: "भाषा बदलें",
       language: "भाषा",
       toggleSidebar: "साइडबार टॉगल करें",
+      learnExplore: "सीखें और खोजें",
+      takeAction: "कार्रवाई करें",
+      tools: "टूल्स",
     },
     hinglish: {
       subtitle: "Fintech Assistant",
       switchLanguage: "Language change",
       language: "Language",
       toggleSidebar: "Sidebar toggle",
+      learnExplore: "Learn & Explore",
+      takeAction: "Take Action",
+      tools: "Tools",
     },
     marathi: {
       subtitle: "फिनटेक सहाय्यक",
       switchLanguage: "भाषा बदला",
       language: "भाषा",
       toggleSidebar: "साइडबार टॉगल करा",
+      learnExplore: "शिका आणि शोधा",
+      takeAction: "कारवाई करा",
+      tools: "साधने",
     },
     gujarati: {
       subtitle: "ફિનટેક સહાયક",
       switchLanguage: "ભાષા બદલો",
       language: "ભાષા",
       toggleSidebar: "સાઇડબાર ટૉગલ કરો",
+      learnExplore: "શીખો અને શોધો",
+      takeAction: "કાર્ય કરો",
+      tools: "ટૂલ્સ",
     },
     tamil: {
       subtitle: "ஃபின்டெக் உதவியாளர்",
       switchLanguage: "மொழி மாற்று",
       language: "மொழி",
       toggleSidebar: "பக்கப்பட்டி மாற்று",
+      learnExplore: "கற்றல் மற்றும் ஆராய்வு",
+      takeAction: "செயலில் இறங்குங்கள்",
+      tools: "கருவிகள்",
     },
     bhojpuri: {
       subtitle: "फिनटेक सहायक",
       switchLanguage: "भाषा बदलीं",
       language: "भाषा",
       toggleSidebar: "साइडबार टॉगल करीं",
+      learnExplore: "सीखी आ खोजीं",
+      takeAction: "एक्शन लीं",
+      tools: "टूल्स",
     },
   });
+  const sectionLabels: Record<SidebarItem["group"], string> = {
+    learn: text.learnExplore,
+    action: text.takeAction,
+    tools: text.tools,
+  };
 
   const navigateTo = (route: string) => {
     router.push(route);
@@ -253,32 +289,46 @@ export function Sidebar({
         )}
       </div>
 
-      <nav className="space-y-1 px-2 py-3">
-        {NAV_ITEMS.map((item) => {
-          const label = pickLocalized(language, item.labels);
-          const isActive =
-            item.route === "/"
-              ? activePath === "/"
-              : activePath === item.route || activePath.startsWith(`${item.route}/`);
+      <nav className="space-y-3 px-2 py-3">
+        {NAV_GROUP_ORDER.map((group) => {
+          const items = NAV_ITEMS.filter((item) => item.group === group);
 
-          const button = (
-            <button
-              key={item.route}
-              onClick={() => navigateTo(item.route)}
-              className={cn(
-                "flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition-colors",
-                isCollapsed ? "justify-center" : "gap-3",
-                isActive
-                  ? "bg-blue-500/15 text-blue-300"
-                  : "text-slate-200 hover:bg-[#1F2937] hover:text-white"
-              )}
-            >
-              <item.icon className="size-4 shrink-0" />
-              {!isCollapsed && <span>{label}</span>}
-            </button>
+          return (
+            <div key={`nav-group-${group}`} className="space-y-1">
+              {!isCollapsed ? (
+                <p className="px-3 pb-1 text-[0.625rem] font-semibold uppercase tracking-wider text-slate-400">
+                  {sectionLabels[group]}
+                </p>
+              ) : null}
+
+              {items.map((item) => {
+                const label = pickLocalized(language, item.labels);
+                const isActive =
+                  item.route === "/"
+                    ? activePath === "/"
+                    : activePath === item.route || activePath.startsWith(`${item.route}/`);
+
+                const button = (
+                  <button
+                    key={item.route}
+                    onClick={() => navigateTo(item.route)}
+                    className={cn(
+                      "flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition-colors",
+                      isCollapsed ? "justify-center" : "gap-3",
+                      isActive
+                        ? "bg-blue-500/15 text-blue-300"
+                        : "text-slate-200 hover:bg-[#1F2937] hover:text-white"
+                    )}
+                  >
+                    <item.icon className="size-4 shrink-0" />
+                    {!isCollapsed && <span>{label}</span>}
+                  </button>
+                );
+
+                return <div key={item.route}>{renderWithTooltip(label, button)}</div>;
+              })}
+            </div>
           );
-
-          return <div key={item.route}>{renderWithTooltip(label, button)}</div>;
         })}
       </nav>
 

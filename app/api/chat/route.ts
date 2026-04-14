@@ -11,7 +11,7 @@ import {
   type BookingLanguage,
 } from "@/lib/fd-booking-flow";
 import { detectMessageLanguage } from "@/lib/language-detection";
-import type { StructuredResponse, FDRecommendation } from "@/types/chat";
+import type { StructuredResponse, FDOption, FDRecommendation } from "@/types/chat";
 
 // Initialize Groq client
 const groq = new Groq({
@@ -95,6 +95,13 @@ For guided booking, include:
 2. ALWAYS include a relatable example with ₹ numbers.
 3. Sound like a helpful friend, NOT a banker.
 4. Keep sentences SHORT (max 15 words).
+
+━━━ EMPATHY AND CONFIDENCE SUPPORT ━━━
+
+1. If user sounds worried, confused, or low-confidence, first acknowledge their concern kindly.
+2. Reassure in plain language before giving technical guidance.
+3. Never shame the user for low savings, delayed decisions, or lack of knowledge.
+4. Keep next steps small and practical so user feels confident taking action.
 
 ━━━ STEP-BY-STEP GUIDANCE ENGINE (Phase 7 — CRITICAL) ━━━
 
@@ -224,6 +231,7 @@ async function extractIntent(
 }
 
 type SupportedChatLanguage = "en" | "hi" | "hinglish" | "mr" | "gu" | "ta" | "bho";
+type ResponseMode = "simple" | "detailed";
 
 function normalizePreferenceLanguage(value: unknown): SupportedChatLanguage | null {
   if (typeof value !== "string") {
@@ -248,6 +256,18 @@ function normalizePreferenceLanguage(value: unknown): SupportedChatLanguage | nu
   };
 
   return map[normalized] ?? null;
+}
+
+function normalizeResponseMode(value: unknown): ResponseMode {
+  return value === "detailed" ? "detailed" : "simple";
+}
+
+function getResponseModeInstruction(mode: ResponseMode): string {
+  if (mode === "detailed") {
+    return "Use DETAILED mode: explanation 3-4 short sentences, include one practical comparison with numbers, keep 3 distinct points, and nextStep can be 1-2 clear lines.";
+  }
+
+  return "Use SIMPLE mode: explanation in 1-2 short sentences, max 2 points, and one very short nextStep. Keep language very plain and avoid extra details.";
 }
 
 function toBookingLanguage(language: SupportedChatLanguage): BookingLanguage {
@@ -305,6 +325,146 @@ function resolveIntent(message: string, extracted: ExtractedIntent): ExtractedIn
 
 function isRecommendationIntent(intent: ExtractedIntent): boolean {
   return intent.intent === "RECOMMEND_FD";
+}
+
+function getRecommendationReason(
+  language: SupportedChatLanguage,
+  rank: number
+): string {
+  if (rank === 0) {
+    const map: Record<SupportedChatLanguage, string> = {
+      en: "Highest rate among available options.",
+      hi: "उपलब्ध विकल्पों में सबसे ऊंचा रेट।",
+      hinglish: "Available options me highest rate.",
+      mr: "उपलब्ध पर्यायांमध्ये सर्वाधिक दर.",
+      gu: "ઉપલબ્ધ વિકલ્પોમાં સૌથી ઊંચો દર.",
+      ta: "கிடைக்கும் விருப்பங்களில் அதிகபட்ச விகிதம்.",
+      bho: "मौजूद विकल्प में सबसे ऊँच दर।",
+    };
+    return map[language];
+  }
+
+  if (rank === 1) {
+    const map: Record<SupportedChatLanguage, string> = {
+      en: "Strong alternative with close rate and practical tenure.",
+      hi: "करीबी रेट और उपयोगी अवधि वाला अच्छा विकल्प।",
+      hinglish: "Close rate aur practical tenure wala strong option.",
+      mr: "जवळचा दर आणि उपयुक्त कालावधी असलेला चांगला पर्याय.",
+      gu: "નજીકના દર અને ઉપયોગી અવધિ સાથે સારો વિકલ્પ.",
+      ta: "நெருக்கமான விகிதம் மற்றும் பயனுள்ள காலத்துடன் நல்ல மாற்று.",
+      bho: "करीब दर आ ठीक अवधि वाला बढ़िया विकल्प।",
+    };
+    return map[language];
+  }
+
+  const map: Record<SupportedChatLanguage, string> = {
+    en: "Useful backup option for comparison before final decision.",
+    hi: "अंतिम फैसला करने से पहले तुलना के लिए अच्छा बैकअप विकल्प।",
+    hinglish: "Final decision se pehle comparison ke liye useful backup option.",
+    mr: "अंतिम निर्णयापूर्वी तुलनेसाठी उपयुक्त बॅकअप पर्याय.",
+    gu: "અંતિમ નિર્ણય પહેલાં તુલના માટે ઉપયોગી બેકઅપ વિકલ્પ.",
+    ta: "இறுதி முடிவுக்கு முன் ஒப்பிட பயன்படும் மாற்று விருப்பம்.",
+    bho: "अंतिम फैसला से पहिले तुलना खातिर काम के बैकअप विकल्प।",
+  };
+  return map[language];
+}
+
+function buildRecommendationFallbackStructured(
+  language: SupportedChatLanguage,
+  options: FDOption[],
+  amount?: number,
+  tenure?: number
+): StructuredResponse {
+  const explanationMap: Record<SupportedChatLanguage, string> = {
+    en: "Based on current approximate rates, these are suitable FD options for your request.",
+    hi: "मौजूदा अनुमानित रेट के आधार पर, आपकी जरूरत के लिए ये सही FD विकल्प हैं।",
+    hinglish:
+      "Current approximate rates ke base par, ye aapki need ke liye suitable FD options hain.",
+    mr: "सध्याच्या अंदाजित दरांनुसार, तुमच्या गरजेसाठी हे योग्य FD पर्याय आहेत.",
+    gu: "હાલના અંદાજિત દરોને આધારે, તમારી જરૂરિયાત માટે આ યોગ્ય FD વિકલ્પો છે.",
+    ta: "தற்போதைய மதிப்பிடப்பட்ட விகிதங்களைப் பொறுத்து, உங்கள் தேவைக்கு இவை நல்ல FD விருப்பங்கள்.",
+    bho: "मौजूदा अनुमानित दर के हिसाब से, रउआ जरूरत खातिर ई ठीक FD विकल्प बा।",
+  };
+
+  const nextStepMap: Record<SupportedChatLanguage, string> = {
+    en: "Select one option and tell me to start guided FD booking.",
+    hi: "एक विकल्प चुनें और बोलें, गाइडेड FD बुकिंग शुरू करें।",
+    hinglish: "Ek option select karo aur bolo, guided FD booking start karo.",
+    mr: "एक पर्याय निवडा आणि सांगा, मार्गदर्शित FD बुकिंग सुरू करा.",
+    gu: "એક વિકલ્પ પસંદ કરો અને કહો, guided FD booking શરૂ કરો.",
+    ta: "ஒரு விருப்பத்தைத் தேர்ந்து, guided FD booking தொடங்க சொல்லுங்கள்.",
+    bho: "एक विकल्प चुनीं आ कहीं, guided FD booking शुरू करीं।",
+  };
+
+  const pointsMap: Record<SupportedChatLanguage, [string, string]> = {
+    en: [
+      "Higher rate can improve returns, but trust and service also matter.",
+      "Choose tenure that matches your goal and liquidity need.",
+    ],
+    hi: [
+      "ऊंचा रेट रिटर्न बढ़ा सकता है, पर भरोसा और सेवा भी जरूरी है।",
+      "अवधि वही चुनें जो आपके लक्ष्य और जरूरत से मेल खाए।",
+    ],
+    hinglish: [
+      "Higher rate se return badhta hai, par trust aur service bhi important hai.",
+      "Tenure wahi lo jo goal aur liquidity need se match kare.",
+    ],
+    mr: [
+      "जास्त दराने परतावा वाढतो, पण विश्वास आणि सेवा तितकीच महत्त्वाची आहेत.",
+      "तुमच्या उद्दिष्ट आणि गरजेनुसार कालावधी निवडा.",
+    ],
+    gu: [
+      "ઉચ્ચ દરથી રિટર્ન વધે છે, પણ વિશ્વાસ અને સેવા પણ મહત્વની છે.",
+      "તમારા લક્ષ્ય અને જરૂર મુજબ અવધિ પસંદ કરો.",
+    ],
+    ta: [
+      "அதிக விகிதம் வருமானத்தை உயர்த்தும், ஆனால் நம்பிக்கை மற்றும் சேவையும் முக்கியம்.",
+      "உங்கள் இலக்கு மற்றும் தேவைக்கு ஏற்ப காலத்தைத் தேர்வுசெய்யுங்கள்.",
+    ],
+    bho: [
+      "जादा दर से रिटर्न बढ़ेला, बाकिर भरोसा आ सेवा भी जरूरी बा।",
+      "अपना लक्ष्य आ जरूरत के हिसाब से अवधि चुनीं।",
+    ],
+  };
+
+  const tenureSuffixMap: Record<SupportedChatLanguage, string> = {
+    en: "tenure considered",
+    hi: "अवधि को ध्यान में रखकर",
+    hinglish: "tenure ko dhyan me rakhkar",
+    mr: "कालावधी विचारात घेऊन",
+    gu: "અવધિ ધ્યાનમાં લઈને",
+    ta: "காலத்தை கருத்தில் கொண்டு",
+    bho: "अवधि ध्यान में रखके",
+  };
+
+  const recommendations: FDRecommendation[] = options.slice(0, 3).map((option, index) => {
+    const maturity =
+      amount && amount > 0
+        ? Math.round(amount * (1 + option.rate / 100 * (option.tenure / 12)))
+        : undefined;
+
+    return {
+      bank: option.bank,
+      rate: option.rate,
+      tenure: option.tenure,
+      maturity,
+      category: option.category,
+      reason: getRecommendationReason(language, index),
+    };
+  });
+
+  const explanation =
+    tenure && tenure > 0
+      ? `${explanationMap[language]} (${tenure} ${tenureSuffixMap[language]}).`
+      : explanationMap[language];
+
+  return {
+    type: "recommendation",
+    explanation,
+    recommendations,
+    points: [...pointsMap[language]],
+    nextStep: nextStepMap[language],
+  };
 }
 
 /** Check if parsed object has the expected structured response shape */
@@ -422,9 +582,10 @@ function parseStructuredResponse(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, history, languagePreference } = body;
+    const { message, history, languagePreference, responseMode } = body;
     const trimmedMessage = typeof message === "string" ? message.trim() : "";
     const preferredLanguage = normalizePreferenceLanguage(languagePreference);
+    const normalizedResponseMode = normalizeResponseMode(responseMode);
     const messageLanguage = detectMessageLanguage(
       trimmedMessage,
       preferredLanguage ?? "en"
@@ -476,16 +637,19 @@ export async function POST(request: NextRequest) {
 
     const langInstruction = getLanguageOverrideInstruction(messageLanguage);
     systemContent += `\n\n━━━ LANGUAGE OVERRIDE (CURRENT USER MESSAGE) ━━━\n${langInstruction} Ignore the global preference and follow the language of the CURRENT user message.`;
+    systemContent += `\n\n━━━ RESPONSE DETAIL OVERRIDE (CURRENT UI MODE) ━━━\n${getResponseModeInstruction(normalizedResponseMode)}`;
+
+    let recommendationOptions: FDOption[] = [];
 
     if (isRecommendationIntent(intent)) {
-      const fdOptions = findBestFDs(
+      recommendationOptions = findBestFDs(
         intent.amount ?? undefined,
         intent.tenure ?? undefined
       );
 
-      if (fdOptions.length > 0) {
+      if (recommendationOptions.length > 0) {
         const fdDataStr = formatFDOptionsForPrompt(
-          fdOptions,
+          recommendationOptions,
           intent.amount ?? undefined,
           intent.tenure ?? undefined
         );
@@ -528,9 +692,22 @@ export async function POST(request: NextRequest) {
     // ── Phase 8: Try parsing structured JSON ──
     const { structured, rawText } = parseStructuredResponse(rawReply);
 
+    const fallbackRecommendationStructured =
+      !structured && isRecommendationIntent(intent) && recommendationOptions.length > 0
+        ? buildRecommendationFallbackStructured(
+            messageLanguage,
+            recommendationOptions,
+            intent.amount ?? undefined,
+            intent.tenure ?? undefined
+          )
+        : null;
+
+    const finalStructured = structured || fallbackRecommendationStructured || undefined;
+    const finalReply = finalStructured?.explanation || rawText;
+
     return NextResponse.json({
-      reply: rawText,
-      structured: structured || undefined,
+      reply: finalReply,
+      structured: finalStructured,
     });
   } catch (error: unknown) {
     console.error("[/api/chat] Error:", error);

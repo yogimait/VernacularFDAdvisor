@@ -22,6 +22,8 @@ interface ChatInputProps {
   onChange: (value: string) => void;
   onSend: () => void;
   onVoiceResult: (text: string) => void;
+  responseMode: "simple" | "detailed";
+  onResponseModeChange: (mode: "simple" | "detailed") => void;
   onCalculatorOpen: () => void;
   isLoading: boolean;
   hasMessages: boolean;
@@ -104,6 +106,8 @@ export function ChatInput({
   onChange,
   onSend,
   onVoiceResult,
+  responseMode,
+  onResponseModeChange,
   onCalculatorOpen,
   isLoading,
   hasMessages,
@@ -217,6 +221,23 @@ export function ChatInput({
       sendMessage: "मैसेज भेजीं",
     },
   });
+  const modeText = pickLocalized(language, {
+    english: {
+      responseStyle: "Response style",
+      simpleMode: "Simple",
+      detailedMode: "Detailed",
+    },
+    hindi: {
+      responseStyle: "जवाब शैली",
+      simpleMode: "सरल",
+      detailedMode: "विस्तृत",
+    },
+    hinglish: {
+      responseStyle: "Response style",
+      simpleMode: "Simple",
+      detailedMode: "Detailed",
+    },
+  });
 
   const {
     isRecording,
@@ -268,6 +289,26 @@ export function ChatInput({
 
   return (
     <div className="shrink-0 border-t border-border bg-card/60 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:px-6">
+      <div className="mx-auto mb-2 flex max-w-3xl items-center justify-between gap-2">
+        <p className="text-[0.6875rem] font-medium text-muted-foreground">{modeText.responseStyle}</p>
+        <div className="inline-flex rounded-full border border-border bg-background/60 p-0.5">
+          {(["simple", "detailed"] as const).map((mode) => (
+            <button
+              key={`response-mode-${mode}`}
+              type="button"
+              onClick={() => onResponseModeChange(mode)}
+              className={`rounded-full px-2.5 py-1 text-[0.6875rem] font-medium transition-colors ${
+                responseMode === mode
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {mode === "simple" ? modeText.simpleMode : modeText.detailedMode}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Quick Action Chips — shown when no messages yet */}
       {!hasMessages && (
         <div className="mx-auto mb-2.5 flex max-w-3xl items-center gap-1.5 overflow-x-auto pb-1">
