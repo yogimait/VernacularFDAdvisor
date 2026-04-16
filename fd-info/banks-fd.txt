@@ -1,0 +1,38 @@
+Here is the detailed data on Fixed Deposit (FD) schemes across different categories of Indian banks and financial institutions, updated as of April 2026. 
+
+**Standard FD Parameters (Money, Tenor, and Age Benefits)**
+*   **Money (Deposit Amount):** The rates below generally apply to "Retail FDs", which are classified as deposits **below ₹3 Crore**. The minimum investment amount can be as low as ₹1,000 to ₹10,000 depending on the specific bank or corporate issuer. 
+*   **Tenor:** FD tenors universally range from a minimum of **7 days up to a maximum of 10 years**. 
+*   **Senior Citizen Benefits:** Almost all banks offer an additional interest premium of **0.50% to 0.75% per annum** for senior citizens (aged 60 and above), and some offer even higher premiums for "super senior" citizens (aged 80 and above).
+
+### 1. Small Finance Banks (Highest Interest Rates)
+Small Finance Banks (SFBs) currently dominate the market by offering the most aggressive interest rates to attract deposits. 
+*   **Unity Small Finance Bank:** Offers the highest rate in the market at **8.60% p.a.** for a specific 1001-day tenor.
+*   **Suryoday Small Finance Bank:** Offers up to **8.40% p.a.** for 30–36 month tenors, **7.90% p.a.** for 5-year tenors, and **7.25% p.a.** for 1-year tenors.
+*   **Shivalik Small Finance Bank:** Offers up to **8.30% p.a.** on select durations.
+*   **Utkarsh Small Finance Bank:** Offers up to **8.25% p.a.** for 2 to 3-year tenors.
+*   **Jana Small Finance Bank:** Offers up to **8.00% p.a.** on select tenures, with 1-year FDs at 7.00% and 5-year FDs at 7.77%.
+
+### 2. Major Private Sector Banks
+Private banks offer a balance of high liquidity, robust digital banking features, and competitive mid-range interest rates.
+*   **Yes Bank:** Offers up to **7.00% p.a. (General) and 7.75% p.a. (Senior)** for tenors ranging from 36 to 60 months.
+*   **HDFC Bank:** Offers up to **6.50% p.a. (General) and 7.00% p.a. (Senior)** for tenures specifically spanning 3 years and 1 day to less than 4 years and 7 months.
+*   **ICICI Bank:** Offers up to **6.50% p.a. (General) and 7.10% p.a. (Senior)** for 3 to 10-year tenors, which includes their 5-year tax-saver FD.
+*   **Kotak Mahindra Bank:** Offers up to **6.70% p.a. (General) and 7.20% p.a. (Senior)** for deposits between 390 days (approx. 13 months) and less than 3 years.
+
+### 3. Public Sector Undertaking (PSU) Banks
+PSU banks provide sovereign-backed safety but generally offer slightly lower interest yields compared to private and small finance banks.
+*   **State Bank of India (SBI):** 
+    *   **1 to <2 Years:** 6.25% (General) / 6.75% (Senior).
+    *   **2 to <3 Years:** 6.40% (General) / 6.90% (Senior).
+    *   **5 to 10 Years:** 6.05% (General) / 7.05% (Senior, under the SBI We-Care scheme). 
+    *   **Special Scheme ("Amrit Vrishti"):** A specific 444-day tenor offering **6.45% p.a.**.
+*   **Punjab National Bank (PNB):** Offers up to **6.30% p.a.** for a 3-year tenor, and 6.10% for a 5-year tenor.
+*   **Bank of Baroda:** Offers up to **6.30% p.a.** for a 5-year tenor, and 6.25% for a 3-year tenor.
+
+### 4. Corporate Fixed Deposits (NBFCs)
+Corporate FDs are issued by Non-Banking Financial Companies. They are not insured by the DICGC (unlike bank FDs) and carry slightly higher risk, but they compensate with excellent interest rates.
+*   **Muthoot Capital Services Ltd:** **8.50% p.a.** (+0.25% for Senior Citizens).
+*   **Manipal Housing Finance Syndicate Ltd:** **7.75% p.a.** (+0.25% for Senior Citizens).
+*   **Shriram Finance:** **7.25% p.a.** (+0.50% for Senior Citizens).
+*   **Sundaram Home Finance:** **7.15% p.a.** (+0.35–0.50% for Senior Citizens).

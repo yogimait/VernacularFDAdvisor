@@ -1,0 +1,161 @@
+
+{
+  "indian_bank_fd_schemes": [
+    {
+      "institution_type": "Public Sector Bank",
+      "bank_name": "State Bank of India (SBI)",
+      "deposit_amount_limit": "Below Rs 3 Crore",
+      "schemes": [
+        {
+          "tenor": "1 Year to less than 2 years",
+          "general_interest_rate_pa": "6.25%",
+          "senior_citizen_interest_rate_pa": "6.75%"
+        },
+        {
+          "tenor": "2 years to less than 3 years",
+          "general_interest_rate_pa": "6.40%",
+          "senior_citizen_interest_rate_pa": "6.90%"
+        },
+        {
+          "tenor": "5 years and up to 10 years",
+          "general_interest_rate_pa": "6.05%",
+          "senior_citizen_interest_rate_pa": "7.05%"
+        }
+      ]
+    },
+    {
+      "institution_type": "Private Sector Bank",
+      "bank_name": "HDFC Bank",
+      "deposit_amount_limit": "Retail deposits",
+      "schemes": [
+        {
+          "tenor": "1 Year to less than 15 months",
+          "general_interest_rate_pa": "6.25%",
+          "senior_citizen_interest_rate_pa": "6.75%"
+        },
+        {
+          "tenor": "3 Years 1 day to less than 4 Years 7 Months",
+          "general_interest_rate_pa": "6.50%",
+          "senior_citizen_interest_rate_pa": "7.00%"
+        },
+        {
+          "tenor": "5 Years 1 day to 10 Years",
+          "general_interest_rate_pa": "6.15%",
+          "senior_citizen_interest_rate_pa": "6.65%"
+        }
+      ]
+    },
+    {
+      "institution_type": "Private Sector Bank",
+      "bank_name": "ICICI Bank",
+      "deposit_amount_limit": "Retail deposits",
+      "schemes": [
+        {
+          "tenor": "1 Year to less than 18 Months",
+          "general_interest_rate_pa": "6.25%",
+          "senior_citizen_interest_rate_pa": "6.75%"
+        },
+        {
+          "tenor": "3 Years 1 Day to 5 Years",
+          "general_interest_rate_pa": "6.50%",
+          "senior_citizen_interest_rate_pa": "7.10%"
+        },
+        {
+          "tenor": "5 Years 1 Day to 10 Years",
+          "general_interest_rate_pa": "6.50%",
+          "senior_citizen_interest_rate_pa": "7.00%"
+        }
+      ]
+    },
+    {
+      "institution_type": "Private Sector Bank",
+      "bank_name": "Yes Bank",
+      "deposit_amount_limit": "Retail deposits",
+      "schemes": [
+        {
+          "tenor": "12 months",
+          "general_interest_rate_pa": "6.65%",
+          "senior_citizen_interest_rate_pa": "7.15%"
+        },
+        {
+          "tenor": "18 months 1 day to less than 24 months",
+          "general_interest_rate_pa": "7.00%",
+          "senior_citizen_interest_rate_pa": "7.50%"
+        },
+        {
+          "tenor": "36 months to less than 60 months",
+          "general_interest_rate_pa": "7.00%",
+          "senior_citizen_interest_rate_pa": "7.75%"
+        }
+      ]
+    },
+    {
+      "institution_type": "Private Sector Bank",
+      "bank_name": "Kotak Mahindra Bank",
+      "deposit_amount_limit": "Retail deposits",
+      "schemes": [
+        {
+          "tenor": "365 Days to less than 15 Months",
+          "general_interest_rate_pa": "6.50%",
+          "senior_citizen_interest_rate_pa": "7.00%"
+        },
+        {
+          "tenor": "15 Months to less than 3 years",
+          "general_interest_rate_pa": "6.70%",
+          "senior_citizen_interest_rate_pa": "7.20%"
+        },
+        {
+          "tenor": "5 years and above up to and inclusive of 10 years",
+          "general_interest_rate_pa": "6.25%",
+          "senior_citizen_interest_rate_pa": "6.75%"
+        }
+      ]
+    },
+    {
+      "institution_type": "Small Finance Bank",
+      "bank_name": "Suryoday Small Finance Bank",
+      "deposit_amount_limit": "Below Rs 3 Crore",
+      "schemes": [
+        {
+          "tenor": "1-year",
+          "general_interest_rate_pa": "7.25%",
+          "senior_citizen_interest_rate_pa": "7.75%"
+        },
+        {
+          "tenor": "3-year",
+          "general_interest_rate_pa": "7.25%",
+          "senior_citizen_interest_rate_pa": "7.75%"
+        },
+        {
+          "tenor": "5-year",
+          "general_interest_rate_pa": "7.90%",
+          "senior_citizen_interest_rate_pa": "8.40%"
+        }
+      ]
+    },
+    {
+      "institution_type": "Corporate FD (NBFC)",
+      "bank_name": "Muthoot Capital Services Ltd",
+      "deposit_amount_limit": "Varies by corporate terms",
+      "schemes": [
+        {
+          "tenor": "Standard Corporate FD",
+          "general_interest_rate_pa": "8.50%",
+          "senior_citizen_interest_rate_pa": "8.75%"
+        }
+      ]
+    },
+    {
+      "institution_type": "Corporate FD (NBFC)",
+      "bank_name": "Shriram Finance",
+      "deposit_amount_limit": "Varies by corporate terms",
+      "schemes": [
+        {
+          "tenor": "Standard Corporate FD",
+          "general_interest_rate_pa": "7.25%",
+          "senior_citizen_interest_rate_pa": "7.75%"
+        }
+      ]
+    }
+  ]
+}

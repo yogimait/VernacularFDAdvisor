@@ -1,0 +1,74 @@
+
+{
+  "indian_fd_user_demographics_2024": {
+    "source": "Reserve Bank of India (RBI) & Bank Guidelines",
+    "total_term_deposit_accounts_thousands": 266654,
+    "total_term_deposit_amount_cr": 11580227,
+    "user_tenor_preferences": [
+      {
+        "tenor_bucket": "Up to 90 Days",
+        "number_of_accounts_thousands": 4894,
+        "amount_outstanding_cr": 985347,
+        "popularity_rank": 4
+      },
+      {
+        "tenor_bucket": "91 Days to less than 6 Months",
+        "number_of_accounts_thousands": 4115,
+        "amount_outstanding_cr": 517131,
+        "popularity_rank": 5
+      },
+      {
+        "tenor_bucket": "6 Months to less than 1 Year",
+        "number_of_accounts_thousands": 18173,
+        "amount_outstanding_cr": 855205,
+        "popularity_rank": 3
+      },
+      {
+        "tenor_bucket": "1 Year to less than 3 Years",
+        "number_of_accounts_thousands": 180298,
+        "amount_outstanding_cr": 7704946,
+        "popularity_rank": 1
+      },
+      {
+        "tenor_bucket": "3 Years to less than 5 Years",
+        "number_of_accounts_thousands": 25403,
+        "amount_outstanding_cr": 695730,
+        "popularity_rank": 6
+      },
+      {
+        "tenor_bucket": "5 Years and above",
+        "number_of_accounts_thousands": 33771,
+        "amount_outstanding_cr": 821868,
+        "popularity_rank": 2
+      }
+    ],
+    "deposits_by_population_group": [
+      {
+        "region_type": "Rural",
+        "number_of_accounts_thousands": 832477,
+        "amount_outstanding_cr": 2214117
+      },
+      {
+        "region_type": "Semi Urban",
+        "number_of_accounts_thousands": 740148,
+        "amount_outstanding_cr": 3333412
+      },
+      {
+        "region_type": "Urban",
+        "number_of_accounts_thousands": 496940,
+        "amount_outstanding_cr": 4484330
+      }
+    ],
+    "user_business_logic_limits": {
+      "dicgc_insurance_safety_limit_inr": 500000,
+      "tax_saving_fd_max_investment_inr": 150000,
+      "tax_saving_fd_lock_in_years": 5,
+      "tds_tax_rules_fy_2025_26": {
+        "tds_exemption_limit_regular_citizen_inr": 50000,
+        "tds_exemption_limit_senior_citizen_inr": 100000,
+        "tds_rate_with_pan_card_percent": 10,
+        "tds_rate_without_pan_card_percent": 20
+      }
+    }
+  }
+}

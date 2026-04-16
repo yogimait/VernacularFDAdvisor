@@ -11,6 +11,11 @@ import {
   type BookingLanguage,
 } from "@/lib/fd-booking-flow";
 import { detectMessageLanguage } from "@/lib/language-detection";
+import {
+  buildKnowledgePromptSection,
+  retrieveKnowledgeContext,
+  type KnowledgeType,
+} from "@/lib/minimal-rag";
 import type { StructuredResponse, FDOption, FDRecommendation } from "@/types/chat";
 
 // Initialize Groq client
@@ -146,6 +151,12 @@ You have REAL FD DATA below. Use it to populate the "recommendations" array in y
 - Include top 2-3 options as objects with bank, rate, tenure, maturity, category, reason.
 - Explain trade-offs in "points" (safety vs returns).
 - Always mention "ye approximate rates hain".`;
+
+const RETRIEVAL_TRANSLATION_PROMPT = `Translate the user message into concise English for retrieval.
+Rules:
+- Preserve numbers, durations, and bank names exactly.
+- Keep finance meaning intact.
+- Output plain English only (no JSON, no notes).`;
 
 type ChatIntent = "GENERAL" | "RECOMMEND_FD" | "BOOK_FD";
 
@@ -283,15 +294,98 @@ function toBookingLanguage(language: SupportedChatLanguage): BookingLanguage {
 function getLanguageOverrideInstruction(language: SupportedChatLanguage): string {
   const map: Record<SupportedChatLanguage, string> = {
     en: "Respond ONLY in English.",
-    hi: "Respond ONLY in Hindi.",
-    hinglish: "Respond ONLY in Hinglish (natural Hindi-English mix).",
-    mr: "Respond ONLY in Marathi.",
-    gu: "Respond ONLY in Gujarati.",
-    ta: "Respond ONLY in Tamil.",
-    bho: "Respond ONLY in Bhojpuri.",
+    hi: "Respond ONLY in pure Hindi using Devanagari script. Never use Roman Hindi/Hinglish.",
+    hinglish:
+      "Respond ONLY in Hinglish (natural Hindi-English mix) using Roman script. Do not use Devanagari.",
+    mr: "Respond ONLY in Marathi using Devanagari script.",
+    gu: "Respond ONLY in Gujarati using Gujarati script.",
+    ta: "Respond ONLY in Tamil using Tamil script.",
+    bho:
+      "Respond ONLY in Bhojpuri using the same script style as the user message. Do not switch to standard Hindi.",
   };
 
   return map[language];
+}
+
+function collectStringValues(value: unknown, bucket: string[] = []): string[] {
+  if (typeof value === "string") {
+    bucket.push(value);
+    return bucket;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectStringValues(item, bucket));
+    return bucket;
+  }
+
+  if (value && typeof value === "object") {
+    Object.values(value).forEach((item) => collectStringValues(item, bucket));
+  }
+
+  return bucket;
+}
+
+function shouldNormalizeHindiOutput(text: string): boolean {
+  if (!text.trim()) {
+    return false;
+  }
+
+  const latinCount = (text.match(/[A-Za-z]/g) || []).length;
+  const devanagariCount = (text.match(/[\u0900-\u097F]/g) || []).length;
+
+  return latinCount >= 20 && latinCount > devanagariCount;
+}
+
+async function rewriteStructuredToHindi(
+  structured: StructuredResponse
+): Promise<StructuredResponse | null> {
+  const prompt =
+    "Rewrite every user-visible text VALUE in this JSON into pure Hindi (Devanagari script only). " +
+    "Keep keys, hierarchy, arrays, numbers, bank names, percentages, and overall meaning unchanged. " +
+    "Return ONLY valid JSON with no markdown.";
+
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: prompt },
+        { role: "user", content: JSON.stringify(structured) },
+      ],
+      model: "openai/gpt-oss-120b",
+      temperature: 0,
+      max_tokens: 1200,
+    });
+
+    const rewritten = completion.choices[0]?.message?.content?.trim() || "";
+    const reparsed = tryParseStructuredFromCandidate(rewritten);
+    return reparsed?.structured ?? null;
+  } catch (error) {
+    console.error("[rewriteStructuredToHindi] Error:", error);
+    return null;
+  }
+}
+
+async function rewriteTextToHindi(text: string): Promise<string | null> {
+  const prompt =
+    "Rewrite the following answer into pure Hindi (Devanagari script only). " +
+    "Keep numbers, bank names, and factual meaning unchanged. Return plain text only.";
+
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: prompt },
+        { role: "user", content: text },
+      ],
+      model: "openai/gpt-oss-120b",
+      temperature: 0,
+      max_tokens: 700,
+    });
+
+    const rewritten = completion.choices[0]?.message?.content?.trim() || "";
+    return rewritten || null;
+  } catch (error) {
+    console.error("[rewriteTextToHindi] Error:", error);
+    return null;
+  }
 }
 
 function resolveIntent(message: string, extracted: ExtractedIntent): ExtractedIntent {
@@ -325,6 +419,62 @@ function resolveIntent(message: string, extracted: ExtractedIntent): ExtractedIn
 
 function isRecommendationIntent(intent: ExtractedIntent): boolean {
   return intent.intent === "RECOMMEND_FD";
+}
+
+function getPreferredKnowledgeType(
+  intent: ExtractedIntent,
+  message: string
+): KnowledgeType | undefined {
+  const lower = message.toLowerCase();
+
+  if (intent.intent === "RECOMMEND_FD") {
+    return "fd_rates";
+  }
+
+  if (/\b(tax|tds|80c|deduction|pan|tax\s*saving)\b/.test(lower)) {
+    return "tax";
+  }
+
+  if (/\b(rural|village|connectivity|regional|multilingual|language)\b/.test(lower)) {
+    return "rural";
+  }
+
+  if (/\b(bank|banking|kyc|account|credit\s*union|central\s*bank)\b/.test(lower)) {
+    return "banking";
+  }
+
+  return undefined;
+}
+
+async function translateToEnglishForRetrieval(
+  message: string,
+  messageLanguage: SupportedChatLanguage
+): Promise<string> {
+  if (!message.trim()) {
+    return message;
+  }
+
+  if (messageLanguage === "en") {
+    return message;
+  }
+
+  try {
+    const translation = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: RETRIEVAL_TRANSLATION_PROMPT },
+        { role: "user", content: message },
+      ],
+      model: "openai/gpt-oss-120b",
+      temperature: 0,
+      max_tokens: 180,
+    });
+
+    const text = translation.choices[0]?.message?.content?.trim();
+    return text || message;
+  } catch (error) {
+    console.error("[translateToEnglishForRetrieval] Error:", error);
+    return message;
+  }
 }
 
 function getRecommendationReason(
@@ -520,6 +670,65 @@ function buildFallbackText(parsed: Record<string, unknown>): string {
   return parts.join("\n") || "Response received.";
 }
 
+function buildStructuredParseResult(
+  parsed: Record<string, unknown>
+): { structured: StructuredResponse; rawText: string } {
+  const structured = cleanStructured(parsed);
+  return {
+    structured,
+    rawText: buildFallbackText(structured as unknown as Record<string, unknown>),
+  };
+}
+
+function normalizeJsonCandidate(candidate: string): string {
+  return candidate
+    .trim()
+    .replace(/^\uFEFF/, "")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\u00A0/g, " ")
+    .replace(/,\s*([}\]])/g, "$1");
+}
+
+function tryParseStructuredFromCandidate(
+  candidate: string
+): { structured: StructuredResponse; rawText: string } | null {
+  const base = normalizeJsonCandidate(candidate);
+  if (!base) {
+    return null;
+  }
+
+  const withQuotedKeys = base.replace(
+    /([{,]\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*:)/g,
+    '$1"$2"$3'
+  );
+
+  const withSingleQuoteValues = withQuotedKeys.replace(
+    /:\s*'([^'\\]*(?:\\.[^'\\]*)*)'/g,
+    ': "$1"'
+  );
+
+  const candidates = [base, withQuotedKeys, withSingleQuoteValues];
+
+  for (const variant of candidates) {
+    try {
+      const parsed = JSON.parse(variant);
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        !Array.isArray(parsed) &&
+        isValidStructured(parsed as Record<string, unknown>)
+      ) {
+        return buildStructuredParseResult(parsed as Record<string, unknown>);
+      }
+    } catch {
+      // Try next variant
+    }
+  }
+
+  return null;
+}
+
 /**
  * Try to parse the LLM response as structured JSON.
  * SECURITY: Raw JSON must NEVER be shown to the user.
@@ -527,39 +736,27 @@ function buildFallbackText(parsed: Record<string, unknown>): string {
 function parseStructuredResponse(
   text: string
 ): { structured: StructuredResponse | null; rawText: string } {
-  // Attempt 1: Direct JSON.parse (response is pure JSON)
-  try {
-    const parsed = JSON.parse(text);
-    if (isValidStructured(parsed)) {
-      return { structured: cleanStructured(parsed), rawText: buildFallbackText(parsed) };
-    }
-  } catch {
-    // Not pure JSON, try extraction
+  // Attempt 1: Parse full response (with tolerant repair)
+  const fullParse = tryParseStructuredFromCandidate(text);
+  if (fullParse) {
+    return fullParse;
   }
 
-  // Attempt 2: Extract JSON from markdown code blocks (```json ... ```)
+  // Attempt 2: Extract JSON from markdown code blocks (```json ... ```) and repair
   const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (codeBlockMatch) {
-    try {
-      const parsed = JSON.parse(codeBlockMatch[1].trim());
-      if (isValidStructured(parsed)) {
-        return { structured: cleanStructured(parsed), rawText: buildFallbackText(parsed) };
-      }
-    } catch {
-      // Code block JSON invalid
+    const blockParse = tryParseStructuredFromCandidate(codeBlockMatch[1].trim());
+    if (blockParse) {
+      return blockParse;
     }
   }
 
-  // Attempt 3: Greedy regex for JSON object in text
+  // Attempt 3: Greedy regex for JSON object in text (with repair)
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (jsonMatch) {
-    try {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (isValidStructured(parsed)) {
-        return { structured: cleanStructured(parsed), rawText: buildFallbackText(parsed) };
-      }
-    } catch {
-      // Regex JSON invalid
+    const extractedParse = tryParseStructuredFromCandidate(jsonMatch[0]);
+    if (extractedParse) {
+      return extractedParse;
     }
   }
 
@@ -590,7 +787,8 @@ export async function POST(request: NextRequest) {
       trimmedMessage,
       preferredLanguage ?? "en"
     );
-    const bookingLanguage = toBookingLanguage(messageLanguage);
+    const responseLanguage = messageLanguage;
+    const bookingLanguage = toBookingLanguage(responseLanguage);
 
     if (!trimmedMessage) {
       return NextResponse.json(
@@ -633,10 +831,40 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    let systemContent = SYSTEM_PROMPT;
+    const retrievalQuery = await translateToEnglishForRetrieval(
+      trimmedMessage,
+      messageLanguage
+    );
 
-    const langInstruction = getLanguageOverrideInstruction(messageLanguage);
-    systemContent += `\n\n━━━ LANGUAGE OVERRIDE (CURRENT USER MESSAGE) ━━━\n${langInstruction} Ignore the global preference and follow the language of the CURRENT user message.`;
+    let knowledgeSection = "";
+    try {
+      const knowledgeContext = await retrieveKnowledgeContext(trimmedMessage, {
+        preferredType: getPreferredKnowledgeType(intent, retrievalQuery),
+        retrievalQuery,
+        limit: 3,
+      });
+
+      knowledgeSection = buildKnowledgePromptSection(knowledgeContext);
+    } catch (error) {
+      console.error("[retrieveKnowledgeContext] Error:", error);
+      knowledgeSection =
+        "━━━ RETRIEVED FD KNOWLEDGE CONTEXT (MINIMAL RAG) ━━━\n" +
+        "Knowledge retrieval failed for this turn. Give cautious guidance and avoid making up exact factual values.";
+    }
+
+    let systemContent = SYSTEM_PROMPT;
+    systemContent += `\n\n${knowledgeSection}`;
+
+    const langInstruction = getLanguageOverrideInstruction(responseLanguage);
+    systemContent += `\n\n━━━ LANGUAGE OVERRIDE (CURRENT USER MESSAGE) ━━━\n${langInstruction} Follow the language of the CURRENT user message only. Ignore UI language selection for this rule.`;
+
+    if (responseLanguage === "bho") {
+      systemContent +=
+        "\n\n━━━ BHOJPURI STRICT MODE ━━━\n" +
+        "Use natural Bhojpuri style and grammar. Prefer words/forms like 'रउआ', 'हमनी', 'बा', 'बानी', 'कइसे'. " +
+        "Avoid standard Hindi forms like 'आप', 'मैं', 'है', 'हैं' unless absolutely necessary for clarity.";
+    }
+
     systemContent += `\n\n━━━ RESPONSE DETAIL OVERRIDE (CURRENT UI MODE) ━━━\n${getResponseModeInstruction(normalizedResponseMode)}`;
 
     let recommendationOptions: FDOption[] = [];
@@ -695,7 +923,7 @@ export async function POST(request: NextRequest) {
     const fallbackRecommendationStructured =
       !structured && isRecommendationIntent(intent) && recommendationOptions.length > 0
         ? buildRecommendationFallbackStructured(
-            messageLanguage,
+            responseLanguage,
             recommendationOptions,
             intent.amount ?? undefined,
             intent.tenure ?? undefined
@@ -703,11 +931,35 @@ export async function POST(request: NextRequest) {
         : null;
 
     const finalStructured = structured || fallbackRecommendationStructured || undefined;
-    const finalReply = finalStructured?.explanation || rawText;
+    let finalReply = finalStructured?.explanation || rawText;
+    let finalOutputStructured = finalStructured;
+
+    if (responseLanguage === "hi") {
+      const structuredText = finalOutputStructured
+        ? collectStringValues(finalOutputStructured).join(" ")
+        : finalReply;
+
+      if (shouldNormalizeHindiOutput(structuredText)) {
+        if (finalOutputStructured) {
+          const rewrittenStructured = await rewriteStructuredToHindi(
+            finalOutputStructured
+          );
+          if (rewrittenStructured) {
+            finalOutputStructured = rewrittenStructured;
+            finalReply = rewrittenStructured.explanation || finalReply;
+          }
+        } else {
+          const rewrittenText = await rewriteTextToHindi(finalReply);
+          if (rewrittenText) {
+            finalReply = rewrittenText;
+          }
+        }
+      }
+    }
 
     return NextResponse.json({
       reply: finalReply,
-      structured: finalStructured,
+      structured: finalOutputStructured,
     });
   } catch (error: unknown) {
     console.error("[/api/chat] Error:", error);

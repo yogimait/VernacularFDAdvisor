@@ -1,0 +1,16 @@
+**Banking Basics**
+A bank is a financial institution that accepts deposits from the public, creates demand deposits, and issues loans. Most banks operate under a fractional-reserve banking system, meaning they hold liquid assets equal to only a portion of their current liabilities. 
+
+The core economic functions of a bank include:
+*   **Netting and Settlement:** Banks act as collection and paying agents, participating in interbank clearing systems to offset inward and outward payments, which reduces the costs of settling transactions.
+*   **Maturity Transformation:** Banks essentially "borrow short and lend long" by taking in short-term or on-demand debt (like everyday customer deposits) and using those funds to provide long-term loans.
+*   **Credit Quality Improvement:** By diversifying their assets and maintaining capital buffers, banks absorb losses without defaulting on obligations, making them high-quality borrowers compared to ordinary commercial borrowers.
+*   **Retail Banking Products:** To compete for deposits, banks offer a variety of retail products including current accounts, savings accounts, and fixed deposit accounts (also known as certificates of deposit).
+
+**Fixed Deposit (FD) Basics**
+A Fixed Deposit (often referred to as a Certificate Account or Certificate of Deposit) is a financial instrument where a saver deposits a specific amount of money with a bank for a definite, predetermined period. 
+
+Key characteristics of FDs include:
+*   **Predictable Returns & Compounding:** FDs provide highly predictable returns and help investors generate steady asset growth. The interest on these deposits is typically compounded quarterly or annually, meaning investors earn interest on both their principal and their previously accumulated interest.
+*   **Tenor and Rate:** FD offers are usually defined by their "tenor" (the length of time the money is locked in, such as 12 months) and their interest rate (such as 8.50% p.a.).
+*   **Withdrawal Restrictions:** Unlike ordinary savings accounts that permit withdrawals at any time, fixed deposits require the saver to leave the funds untouched until the maturity date. If a customer withdraws funds before maturity, they are typically subject to a penalty, which often involves the loss of some or all of the accrued interest.

@@ -9,7 +9,7 @@ const MARATHI_HINTS =
   /\b(aahe|ahet|mala|majha|majhi|majhe|tumhi|kaay|kay|nahi|pahije|karaycha)\b|\b(आहे|आहेत|मला|माझा|माझी|माझे|तुम्ही|काय|नाही|पाहिजे|करायचा)\b/i;
 
 const BHOJPURI_HINTS =
-  /\b(ham|rauwa|ka\s+ba|bani|ba|chahi|batai|bataai|boli|kaise)\b|\b(हम|रउआ|का\s*बा|बानी|बा|चाही|बताई|बोली|कइसे)\b/i;
+  /\b(ham|hamni|rauwa|raura|tohra|ka\s+ba|ka\s+ho|bani|ba|bada|bani\b|chahi|batai|bataai|boli|kaise|kahe|ego)\b|\b(हम|हमनी|रउआ|रउरा|तोहरा|का\s*बा|का\s*हो|बानी|बा|बाड़|चाही|बताई|बोली|कइसे|काहे|एगो|ई|तनी)\b/i;
 
 const HINGLISH_HINTS =
   /\b(kya|kaise|mera|meri|mujhe|chahiye|karna|bolo|samjhao|batao|acha|theek|hain?|hai)\b/i;

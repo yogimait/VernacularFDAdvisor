@@ -1,10 +1,11 @@
 import type { FDOption } from "@/types/chat";
+import bankFdInfo from "@/fd-info/bank-fd-info.json";
 
 /**
- * Static FD dataset — realistic Indian bank rates (April 2026 approx.)
- * Covers major banks, small finance banks, and post office.
+ * Static fallback FD dataset for resilience.
+ * Primary source now comes from fd-info/bank-fd-info.json.
  */
-export const FD_DATA: FDOption[] = [
+const FALLBACK_FD_DATA: FDOption[] = [
   // ── Large Public Sector Banks ──
   {
     bank: "SBI (State Bank of India)",
@@ -126,6 +127,169 @@ export const FD_DATA: FDOption[] = [
   },
 ];
 
+interface BankFdSchemeRecord {
+  tenor?: string;
+  general_interest_rate_pa?: string;
+}
+
+interface BankFdInstitutionRecord {
+  institution_type?: string;
+  bank_name?: string;
+  deposit_amount_limit?: string;
+  schemes?: BankFdSchemeRecord[];
+}
+
+interface BankFdInfoPayload {
+  indian_bank_fd_schemes?: BankFdInstitutionRecord[];
+}
+
+function parseFirstRate(rateText: string | undefined): number | null {
+  if (!rateText) {
+    return null;
+  }
+
+  const match = rateText.match(/(\d+(?:\.\d+)?)/);
+  if (!match) {
+    return null;
+  }
+
+  const rate = Number(match[1]);
+  return Number.isFinite(rate) ? rate : null;
+}
+
+function parseRepresentativeTenureMonths(tenorText: string | undefined): number {
+  if (!tenorText) {
+    return 12;
+  }
+
+  const text = tenorText.toLowerCase();
+
+  const candidates: Array<{ index: number; months: number }> = [];
+
+  for (const match of text.matchAll(/(\d+(?:\.\d+)?)\s*year/g)) {
+    candidates.push({ index: match.index ?? 0, months: Number(match[1]) * 12 });
+  }
+
+  for (const match of text.matchAll(/(\d+(?:\.\d+)?)\s*month/g)) {
+    candidates.push({ index: match.index ?? 0, months: Number(match[1]) });
+  }
+
+  for (const match of text.matchAll(/(\d+(?:\.\d+)?)\s*day/g)) {
+    candidates.push({ index: match.index ?? 0, months: Number(match[1]) / 30 });
+  }
+
+  if (candidates.length > 0) {
+    candidates.sort((a, b) => a.index - b.index);
+    return Math.max(1, Math.round(candidates[0].months));
+  }
+
+  if (/tax[-\s]*saving|tax[-\s]*saver/.test(text)) {
+    return 60;
+  }
+
+  if (/standard/.test(text)) {
+    return 24;
+  }
+
+  return 12;
+}
+
+function toCategory(
+  institutionType: string | undefined,
+  bankName: string
+): FDOption["category"] {
+  const signal = `${institutionType ?? ""} ${bankName}`.toLowerCase();
+
+  if (signal.includes("post office")) {
+    return "government";
+  }
+
+  if (signal.includes("small finance")) {
+    return "small-finance";
+  }
+
+  if (signal.includes("public sector") || signal.includes("state bank")) {
+    return "public";
+  }
+
+  if (signal.includes("government")) {
+    return "government";
+  }
+
+  return "private";
+}
+
+function inferMinAmount(
+  category: FDOption["category"],
+  depositLimitText: string | undefined
+): number {
+  const text = (depositLimitText ?? "").toLowerCase();
+
+  if (text.includes("below rs 3 crore") || text.includes("retail deposits")) {
+    return category === "public" || category === "government" ? 1000 : 5000;
+  }
+
+  if (category === "government" || category === "public") {
+    return 1000;
+  }
+
+  if (category === "small-finance") {
+    return 5000;
+  }
+
+  return 10000;
+}
+
+function buildFDDataFromJson(): FDOption[] {
+  const payload = bankFdInfo as BankFdInfoPayload;
+  const records = payload.indian_bank_fd_schemes ?? [];
+
+  const mapped: FDOption[] = [];
+
+  for (const record of records) {
+    const bankName = record.bank_name?.trim();
+    if (!bankName) {
+      continue;
+    }
+
+    const category = toCategory(record.institution_type, bankName);
+    const minAmount = inferMinAmount(category, record.deposit_amount_limit);
+
+    for (const scheme of record.schemes ?? []) {
+      const rate = parseFirstRate(scheme.general_interest_rate_pa);
+      if (rate === null) {
+        continue;
+      }
+
+      mapped.push({
+        bank: bankName,
+        rate,
+        tenure: parseRepresentativeTenureMonths(scheme.tenor),
+        minAmount,
+        category,
+      });
+    }
+  }
+
+  const merged = [...mapped, ...FALLBACK_FD_DATA];
+  const seen = new Set<string>();
+  const deduped: FDOption[] = [];
+
+  for (const item of merged) {
+    const key = `${item.bank.toLowerCase()}|${item.tenure}|${item.rate}`;
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    deduped.push(item);
+  }
+
+  return deduped;
+}
+
+export const FD_DATA: FDOption[] = buildFDDataFromJson();
+
 /**
  * Finds best FD options matching user criteria.
  * Returns top 3 sorted by interest rate (highest first).
@@ -170,7 +334,7 @@ export function formatFDOptionsForPrompt(
     return "No matching FD options found for the given criteria.";
   }
 
-  let result = `FD RECOMMENDATIONS (based on`;
+  let result = `FD RECOMMENDATIONS (source: fd-info/bank-fd-info.json, based on`;
   if (amount) result += ` ₹${amount.toLocaleString("en-IN")}`;
   if (tenure) result += ` for ${tenure} months`;
   result += `):\n\n`;

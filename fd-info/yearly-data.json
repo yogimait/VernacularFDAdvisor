@@ -1,0 +1,72 @@
+
+{
+  "yearly_fd_macro_data": {
+    "source": "Handbook of Statistics on the Indian Economy, 2023-24 (RBI)",
+    "description": "Year-over-year growth data of Term Deposits, User Accounts, Regional Banking, and Insurance Schemes",
+    "yearly_records": [
+      {
+        "financial_year": "2021-22",
+        "user_term_deposits": {
+          "total_accounts_thousands": 247079,
+          "total_amount_cr": 8599216
+        },
+        "bank_population_group_deposits": {
+          "rural_accounts_thousands": 775026,
+          "rural_amount_cr": 1802048,
+          "urban_accounts_thousands": 380119,
+          "urban_amount_cr": 3645192
+        },
+        "dicgc_insurance_scheme": {
+          "fully_protected_accounts_lakh": 25667,
+          "insured_deposits_cr": 8110431
+        },
+        "average_bank_scheme_rates_pa": {
+          "term_deposits_1_to_3_years": "5.00% - 5.20%",
+          "term_deposits_3_to_5_years": "5.05% - 5.45%"
+        }
+      },
+      {
+        "financial_year": "2022-23",
+        "user_term_deposits": {
+          "total_accounts_thousands": 251467,
+          "total_amount_cr": 9760478
+        },
+        "bank_population_group_deposits": {
+          "rural_accounts_thousands": 806975,
+          "rural_amount_cr": 1966609,
+          "urban_accounts_thousands": 443865,
+          "urban_amount_cr": 4029828
+        },
+        "dicgc_insurance_scheme": {
+          "fully_protected_accounts_lakh": 27050,
+          "insured_deposits_cr": 8631259
+        },
+        "average_bank_scheme_rates_pa": {
+          "term_deposits_1_to_3_years": "5.30% - 5.60%",
+          "term_deposits_3_to_5_years": "5.35% - 6.10%"
+        }
+      },
+      {
+        "financial_year": "2023-24",
+        "user_term_deposits": {
+          "total_accounts_thousands": 266654,
+          "total_amount_cr": 11580227
+        },
+        "bank_population_group_deposits": {
+          "rural_accounts_thousands": 832477,
+          "rural_amount_cr": 2214117,
+          "urban_accounts_thousands": 496940,
+          "urban_amount_cr": 4484330
+        },
+        "dicgc_insurance_scheme": {
+          "fully_protected_accounts_lakh": 28332,
+          "insured_deposits_cr": 9410674
+        },
+        "average_bank_scheme_rates_pa": {
+          "term_deposits_1_to_3_years": "6.50% - 7.25%",
+          "term_deposits_3_to_5_years": "6.50% - 7.00%"
+        }
+      }
+    ]
+  }
+}
