@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import dynamic from "next/dynamic";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { ChatMessages } from "./chat-messages";
 import { ChatInput } from "./chat-input";
-import { FDCalculatorModal } from "./fd-calculator-modal";
 import { useLanguage, type Language } from "@/hooks/use-language";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 import { pickLocalized } from "@/lib/i18n";
 import { detectMessageLanguage } from "@/lib/language-detection";
+import { findBestFDs } from "@/lib/fd-data";
 import {
   applyBookingCommand,
   applyBookingTextUpdates,
@@ -23,6 +25,7 @@ import {
   type FDBookingActionCommand,
 } from "@/lib/fd-booking-flow";
 import type {
+  FDRecommendation,
   FDBookingState,
   Message,
   StructuredResponse,
@@ -48,6 +51,167 @@ const CHAT_MODES = [
 ] as const;
 
 const RESPONSE_MODE_STORAGE_KEY = "fdadvisor:response-mode";
+const CHAT_HISTORY_CACHE_KEY = "fdadvisor:chat-history-v1";
+const CHAT_RECOMMENDATION_CACHE_KEY = "fdadvisor:chat-recommendations-v1";
+const MAX_CACHED_CHAT_TURNS = 5;
+const MAX_CACHED_MESSAGES = MAX_CACHED_CHAT_TURNS * 2;
+const MAX_CACHED_RECOMMENDATIONS = 5;
+const SEND_DEBOUNCE_MS = 450;
+
+const FDCalculatorModal = dynamic(
+  () => import("./fd-calculator-modal").then((mod) => mod.FDCalculatorModal),
+  { ssr: false }
+);
+
+interface CachedMessageRecord {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: number;
+  structured?: StructuredResponse;
+}
+
+interface CachedRecommendationRecord {
+  timestamp: number;
+  structured: StructuredResponse;
+}
+
+function readCachedMessagesFromStorage(): Message[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const raw = window.localStorage.getItem(CHAT_HISTORY_CACHE_KEY);
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as CachedMessageRecord[];
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .filter(
+        (item) =>
+          item &&
+          (item.role === "user" || item.role === "assistant") &&
+          typeof item.content === "string" &&
+          typeof item.timestamp === "number"
+      )
+      .slice(-MAX_CACHED_MESSAGES)
+      .map((item) => ({
+        id: item.id,
+        role: item.role,
+        content: item.content,
+        timestamp: new Date(item.timestamp),
+        structured: item.structured,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+function persistCachedMessagesToStorage(messages: Message[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (messages.length === 0) {
+    window.localStorage.removeItem(CHAT_HISTORY_CACHE_KEY);
+    return;
+  }
+
+  const serialized: CachedMessageRecord[] = messages
+    .slice(-MAX_CACHED_MESSAGES)
+    .map((message) => ({
+      id: message.id,
+      role: message.role,
+      content: message.content,
+      timestamp: message.timestamp.getTime(),
+      structured: message.structured,
+    }));
+
+  window.localStorage.setItem(CHAT_HISTORY_CACHE_KEY, JSON.stringify(serialized));
+}
+
+function readCachedRecommendationRecords(): CachedRecommendationRecord[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const raw = window.localStorage.getItem(CHAT_RECOMMENDATION_CACHE_KEY);
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as CachedRecommendationRecord[];
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter(
+      (item) =>
+        item &&
+        typeof item.timestamp === "number" &&
+        item.structured?.type === "recommendation"
+    );
+  } catch {
+    return [];
+  }
+}
+
+function persistRecommendationToStorage(structured: StructuredResponse) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (structured.type !== "recommendation" || !structured.recommendations?.length) {
+    return;
+  }
+
+  const existing = readCachedRecommendationRecords();
+  const nextRecords = [
+    ...existing,
+    {
+      timestamp: Date.now(),
+      structured,
+    },
+  ].slice(-MAX_CACHED_RECOMMENDATIONS);
+
+  window.localStorage.setItem(
+    CHAT_RECOMMENDATION_CACHE_KEY,
+    JSON.stringify(nextRecords)
+  );
+}
+
+function readLatestCachedRecommendation(): StructuredResponse | null {
+  const existing = readCachedRecommendationRecords();
+  if (existing.length === 0) {
+    return null;
+  }
+
+  return existing[existing.length - 1].structured;
+}
+
+function readStoredBookingState(): FDBookingState | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const raw = window.sessionStorage.getItem(BOOKING_STATE_KEY);
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw) as FDBookingState;
+  } catch {
+    return null;
+  }
+}
 
 type ChatMode = (typeof CHAT_MODES)[number]["key"];
 
@@ -84,13 +248,22 @@ function toBookingLanguage(language: Language): BookingLanguage {
 }
 
 export function ChatContainer() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() =>
+    readCachedMessagesFromStorage()
+  );
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [responseMode, setResponseMode] = useState<"simple" | "detailed">("simple");
   const [activeMode, setActiveMode] = useState<ChatMode>("ask");
-  const [bookingState, setBookingState] = useState<FDBookingState | null>(null);
+  const [bookingState, setBookingState] = useState<FDBookingState | null>(() =>
+    readStoredBookingState()
+  );
+  const isOnline = useOnlineStatus();
+  const sendDebounceRef = useRef<{ text: string; at: number }>({
+    text: "",
+    at: 0,
+  });
   const { language, setLanguage } = useLanguage();
   const text = pickLocalized(language, {
     en: {
@@ -239,6 +412,78 @@ export function ChatContainer() {
     },
   });
 
+  const offlineText = pickLocalized(language, {
+    english: {
+      banner:
+        "You are offline. AI chat is paused, but cached guidance is still available.",
+      cachedReply:
+        "You are offline, so I am showing your last saved recommendation.",
+      basicReply:
+        "You are offline, so live AI chat is unavailable right now. Here are basic FD options from local data.",
+      basicPoints: [
+        "Higher rates are often from small finance banks; check your risk comfort.",
+        "Pick tenure based on your liquidity needs, not only rate.",
+        "Use DICGC-protected options for better deposit safety.",
+      ],
+      basicNextStep:
+        "When internet is back, ask for a personalized plan with your exact amount and tenure.",
+      defaultReason: "Suggested from locally cached FD data for offline use.",
+    },
+    hindi: {
+      banner:
+        "आप ऑफलाइन हैं। AI चैट रुकी हुई है, लेकिन सेव किया गया गाइडेंस उपलब्ध है।",
+      cachedReply:
+        "आप ऑफलाइन हैं, इसलिए मैं आपकी पिछली सेव की गई recommendation दिखा रहा हूं।",
+      basicReply:
+        "आप ऑफलाइन हैं, इसलिए अभी live AI चैट उपलब्ध नहीं है। नीचे local data से basic FD options दिए गए हैं।",
+      basicPoints: [
+        "अधिक रेट अक्सर small finance banks में मिलता है; अपना जोखिम स्तर देखें।",
+        "सिर्फ रेट नहीं, जरूरत के हिसाब से tenure चुनें।",
+        "बेहतर सुरक्षा के लिए DICGC-protected विकल्प चुनें।",
+      ],
+      basicNextStep:
+        "इंटरनेट आते ही अपनी राशि और अवधि देकर personalized सुझाव लें।",
+      defaultReason: "ऑफलाइन उपयोग के लिए local FD data से सुझाया गया विकल्प।",
+    },
+    hinglish: {
+      banner:
+        "Aap offline ho. AI chat pause hai, lekin saved guidance available hai.",
+      cachedReply:
+        "Aap offline ho, isliye main aapki last saved recommendation dikha raha hoon.",
+      basicReply:
+        "Aap offline ho, isliye live AI chat abhi available nahi hai. Yeh basic FD options local data se diye gaye hain.",
+      basicPoints: [
+        "Higher rates often small finance banks me milte hain; risk comfort check karo.",
+        "Sirf rate nahi, liquidity need ke hisaab se tenure choose karo.",
+        "Better safety ke liye DICGC-protected options prefer karo.",
+      ],
+      basicNextStep:
+        "Internet wapas aate hi exact amount aur tenure dekar personalized suggestion lo.",
+      defaultReason: "Offline use ke liye local FD data se suggest kiya gaya option.",
+    },
+  });
+
+  const buildDefaultOfflineRecommendations = useCallback((): FDRecommendation[] => {
+    return findBestFDs(100000, 12).map((option) => ({
+      bank: option.bank,
+      rate: option.rate,
+      tenure: option.tenure,
+      category: option.category,
+      reason: offlineText.defaultReason,
+    }));
+  }, [offlineText.defaultReason]);
+
+  const cacheRecommendationSnapshot = useCallback(
+    (structured?: StructuredResponse) => {
+      if (!structured) {
+        return;
+      }
+
+      persistRecommendationToStorage(structured);
+    },
+    []
+  );
+
   const appendAssistantMessage = useCallback(
     (content: string, structured?: StructuredResponse) => {
       const assistantMessage: Message = {
@@ -319,6 +564,17 @@ export function ChatContainer() {
     async (rawInput: string) => {
       const trimmed = rawInput.trim();
       if (!trimmed) return;
+
+      const now = Date.now();
+      const normalized = trimmed.toLowerCase();
+      if (
+        normalized === sendDebounceRef.current.text &&
+        now - sendDebounceRef.current.at < SEND_DEBOUNCE_MS
+      ) {
+        return;
+      }
+      sendDebounceRef.current = { text: normalized, at: now };
+
       const inputLanguage = detectMessageLanguage(trimmed, language);
       const inputBookingLanguage = toBookingLanguage(inputLanguage);
 
@@ -390,10 +646,39 @@ export function ChatContainer() {
       const updatedMessages = [...messages, userMessage];
       setMessages(updatedMessages);
       setInputValue("");
-      setIsLoading(true);
 
       const shouldPromptResume =
         !!currentBookingState && !isBookingRelatedMessage(trimmed);
+
+      if (!isOnline) {
+        const cachedRecommendation = readLatestCachedRecommendation();
+        const fallbackStructured: StructuredResponse =
+          cachedRecommendation ??
+          {
+            type: "recommendation",
+            explanation: offlineText.basicReply,
+            recommendations: buildDefaultOfflineRecommendations(),
+            points: offlineText.basicPoints,
+            nextStep: offlineText.basicNextStep,
+          };
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: generateId(),
+            role: "assistant",
+            content:
+              cachedRecommendation ? offlineText.cachedReply : offlineText.basicReply,
+            timestamp: new Date(),
+            structured: fallbackStructured,
+          },
+        ]);
+
+        cacheRecommendationSnapshot(fallbackStructured);
+        return;
+      }
+
+      setIsLoading(true);
 
       try {
         const history = messages.slice(-6).map((m) => ({
@@ -427,6 +712,7 @@ export function ChatContainer() {
         };
 
         setMessages((prev) => [...prev, aiMessage]);
+        cacheRecommendationSnapshot(data.structured || undefined);
 
         if (
           data.structured?.type === "booking_flow" &&
@@ -471,7 +757,14 @@ export function ChatContainer() {
       bookingState,
       handleBookingCommand,
       messages,
+      isOnline,
+      buildDefaultOfflineRecommendations,
+      cacheRecommendationSnapshot,
       language,
+      offlineText.basicNextStep,
+      offlineText.basicPoints,
+      offlineText.basicReply,
+      offlineText.cachedReply,
       responseMode,
       text.bookingUpdatedFallback,
       text.errorFallback,
@@ -505,9 +798,9 @@ export function ChatContainer() {
     [isLoading, sendMessage, text.comparePrompt, text.openPrompt]
   );
 
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback((valueOverride?: string) => {
     if (isLoading) return;
-    sendMessage(inputValue);
+    sendMessage(valueOverride ?? inputValue);
   }, [inputValue, isLoading, sendMessage]);
 
   const handleSuggestionClick = useCallback(
@@ -612,6 +905,10 @@ export function ChatContainer() {
   }, []);
 
   useEffect(() => {
+    persistCachedMessagesToStorage(messages);
+  }, [messages]);
+
+  useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
@@ -628,6 +925,11 @@ export function ChatContainer() {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
+      {!isOnline ? (
+        <div className="shrink-0 border-b border-amber-400/30 bg-amber-500/10 px-4 py-2 text-[0.75rem] font-medium text-amber-800 dark:text-amber-200 sm:px-6">
+          {offlineText.banner}
+        </div>
+      ) : null}
       <div className="shrink-0 border-b border-border bg-card/40 px-4 py-2 sm:px-6">
         <div className="flex items-center gap-1.5 overflow-x-auto" role="tablist" aria-label="Chat mode selection">
           {CHAT_MODES.map((mode) => (
@@ -663,6 +965,7 @@ export function ChatContainer() {
         onResponseModeChange={handleResponseModeChange}
         onCalculatorOpen={() => setIsCalculatorOpen(true)}
         isLoading={isLoading}
+        isOffline={!isOnline}
         hasMessages={messages.length > 0}
       />
       <FDCalculatorModal

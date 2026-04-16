@@ -12,8 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import type { Language } from "@/hooks/use-language";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 import { dispatchOpenMobileSidebar } from "@/lib/chat-events";
 import { LANGUAGE_SEQUENCE, LANGUAGE_SHORT_LABELS, pickLocalized } from "@/lib/i18n";
+import { InstallAppButton } from "@/components/pwa/install-app-button";
 
 interface ChatHeaderProps {
   language: Language;
@@ -22,6 +24,7 @@ interface ChatHeaderProps {
 
 export function ChatHeader({ language, onLanguageChange }: ChatHeaderProps) {
   const { resolvedTheme, setTheme } = useTheme();
+  const isOnline = useOnlineStatus();
   const isHydrated = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -31,6 +34,7 @@ export function ChatHeader({ language, onLanguageChange }: ChatHeaderProps) {
     english: {
       subtitle: "Your Multilingual Financial Guide",
       online: "Online",
+      offline: "Offline",
       switchLanguage: "Switch language",
       openSidebar: "Open sidebar",
       toggleTheme: "Toggle theme",
@@ -38,6 +42,7 @@ export function ChatHeader({ language, onLanguageChange }: ChatHeaderProps) {
     hindi: {
       subtitle: "आपका बहुभाषी वित्तीय गाइड",
       online: "ऑनलाइन",
+      offline: "ऑफलाइन",
       switchLanguage: "भाषा बदलें",
       openSidebar: "साइडबार खोलें",
       toggleTheme: "थीम बदलें",
@@ -45,6 +50,7 @@ export function ChatHeader({ language, onLanguageChange }: ChatHeaderProps) {
     hinglish: {
       subtitle: "Aapka multilingual financial guide",
       online: "Online",
+      offline: "Offline",
       switchLanguage: "Language change",
       openSidebar: "Sidebar open",
       toggleTheme: "Theme toggle",
@@ -52,6 +58,7 @@ export function ChatHeader({ language, onLanguageChange }: ChatHeaderProps) {
     marathi: {
       subtitle: "तुमचा बहुभाषिक आर्थिक मार्गदर्शक",
       online: "ऑनलाइन",
+      offline: "ऑफलाइन",
       switchLanguage: "भाषा बदला",
       openSidebar: "साइडबार उघडा",
       toggleTheme: "थीम बदला",
@@ -59,6 +66,7 @@ export function ChatHeader({ language, onLanguageChange }: ChatHeaderProps) {
     gujarati: {
       subtitle: "તમારો બહુભાષી આર્થિક માર્ગદર્શક",
       online: "ઓનલાઇન",
+      offline: "ઓફલાઇન",
       switchLanguage: "ભાષા બદલો",
       openSidebar: "સાઇડબાર ખોલો",
       toggleTheme: "થીમ બદલો",
@@ -66,6 +74,7 @@ export function ChatHeader({ language, onLanguageChange }: ChatHeaderProps) {
     tamil: {
       subtitle: "உங்கள் பன்மொழி நிதி வழிகாட்டி",
       online: "ஆன்லைன்",
+      offline: "ஆஃப்லைன்",
       switchLanguage: "மொழி மாற்று",
       openSidebar: "பக்கப்பட்டி திறக்க",
       toggleTheme: "தீம் மாற்று",
@@ -73,6 +82,7 @@ export function ChatHeader({ language, onLanguageChange }: ChatHeaderProps) {
     bhojpuri: {
       subtitle: "रउरा बहुभाषी आर्थिक मार्गदर्शक",
       online: "ऑनलाइन",
+      offline: "ऑफलाइन",
       switchLanguage: "भाषा बदलीं",
       openSidebar: "साइडबार खोलीं",
       toggleTheme: "थीम बदलीं",
@@ -118,9 +128,15 @@ export function ChatHeader({ language, onLanguageChange }: ChatHeaderProps) {
 
       {/* Status Indicator */}
       <Badge variant="outline" className="hidden gap-1.5 sm:flex">
-        <span className="size-1.5 rounded-full bg-chart-1 animate-pulse" />
-        {text.online}
+        <span
+          className={`size-1.5 rounded-full ${
+            isOnline ? "bg-chart-1 animate-pulse" : "bg-destructive"
+          }`}
+        />
+        {isOnline ? text.online : text.offline}
       </Badge>
+
+      <InstallAppButton language={language} />
 
       {/* Language Switch */}
       <Button

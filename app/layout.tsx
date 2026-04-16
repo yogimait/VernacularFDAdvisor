@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Space_Grotesk, Inter } from "next/font/google";
 
 import "./globals.css";
@@ -19,9 +19,47 @@ const fontMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  applicationName: "FD Advisor",
   title: "FD Advisor — Multilingual Fixed Deposit Guide",
   description:
     "AI-powered multilingual financial assistant that simplifies Fixed Deposit decisions for Indian users. Ask in Hindi, English, or Hinglish.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: [
+      {
+        url: "/icons/icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/icons/icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+    apple: [
+      {
+        url: "/icons/icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "FD Advisor",
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0f172a",
 };
 
 export default function RootLayout({

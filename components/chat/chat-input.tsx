@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,12 +20,13 @@ import { pickLocalized, type LocalizedValues } from "@/lib/i18n";
 interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
-  onSend: () => void;
+  onSend: (valueOverride?: string) => void;
   onVoiceResult: (text: string) => void;
   responseMode: "simple" | "detailed";
   onResponseModeChange: (mode: "simple" | "detailed") => void;
   onCalculatorOpen: () => void;
   isLoading: boolean;
+  isOffline: boolean;
   hasMessages: boolean;
 }
 
@@ -110,10 +111,13 @@ export function ChatInput({
   onResponseModeChange,
   onCalculatorOpen,
   isLoading,
+  isOffline,
   hasMessages,
 }: ChatInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [draftValue, setDraftValue] = useState(value);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { language } = useLanguage();
   const text = pickLocalized(language, {
     en: {
@@ -128,6 +132,7 @@ export function ChatInput({
       startVoiceInput: "Start voice input",
       fdCalculator: "FD Calculator",
       sendMessage: "Send message",
+      offlineVoiceHint: "Voice input needs internet. Type your message while offline.",
     },
     english: {
       quickCalculator: "Calculator",
@@ -154,6 +159,8 @@ export function ChatInput({
       startVoiceInput: "वॉइस इनपुट शुरू करें",
       fdCalculator: "FD कैलकुलेटर",
       sendMessage: "मैसेज भेजें",
+      offlineVoiceHint:
+        "वॉइस इनपुट के लिए इंटरनेट चाहिए। ऑफलाइन होने पर टाइप करके पूछें।",
     },
     hinglish: {
       quickCalculator: "Calculator",
@@ -167,6 +174,8 @@ export function ChatInput({
       startVoiceInput: "Voice input start",
       fdCalculator: "FD Calculator",
       sendMessage: "Message bhejein",
+      offlineVoiceHint:
+        "Voice input ke liye internet chahiye. Offline mode me type karke poochho.",
     },
     marathi: {
       quickCalculator: "कॅल्क्युलेटर",
@@ -180,6 +189,8 @@ export function ChatInput({
       startVoiceInput: "व्हॉइस इनपुट सुरू करा",
       fdCalculator: "FD कॅल्क्युलेटर",
       sendMessage: "मेसेज पाठवा",
+      offlineVoiceHint:
+        "व्हॉइस इनपुटसाठी इंटरनेट आवश्यक आहे. ऑफलाइन असताना संदेश टाइप करा.",
     },
     gujarati: {
       quickCalculator: "કેલ્ક્યુલેટર",
@@ -193,6 +204,8 @@ export function ChatInput({
       startVoiceInput: "વૉઇસ ઇનપુટ શરૂ કરો",
       fdCalculator: "FD કેલ્ક્યુલેટર",
       sendMessage: "સંદેશ મોકલો",
+      offlineVoiceHint:
+        "વૉઇસ ઇનપુટ માટે ઇન્ટરનેટ જરૂરી છે. ઑફલાઇન વખતે મેસેજ ટાઇપ કરો.",
     },
     tamil: {
       quickCalculator: "கணிப்பான்",
@@ -206,6 +219,8 @@ export function ChatInput({
       startVoiceInput: "குரல் உள்ளீடு தொடங்கு",
       fdCalculator: "FD கணிப்பான்",
       sendMessage: "செய்தி அனுப்பு",
+      offlineVoiceHint:
+        "குரல் உள்ளீட்டிற்கு இணையம் தேவை. ஆஃப்லைனில் செய்தியை தட்டச்சு செய்யுங்கள்.",
     },
     bhojpuri: {
       quickCalculator: "कैलकुलेटर",
@@ -219,6 +234,8 @@ export function ChatInput({
       startVoiceInput: "वॉइस इनपुट शुरू करीं",
       fdCalculator: "FD कैलकुलेटर",
       sendMessage: "मैसेज भेजीं",
+      offlineVoiceHint:
+        "वॉइस इनपुट खातिर इंटरनेट जरूरी बा। ऑफलाइन में मेसेज टाइप करीं।",
     },
   });
   const modeText = pickLocalized(language, {
@@ -247,15 +264,70 @@ export function ChatInput({
     cancelRecording,
   } = useVoiceRecorder();
 
+  useEffect(() => {
+    setDraftValue(value);
+  }, [value]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+
+  const debouncedChange = useCallback(
+    (nextValue: string) => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+
+      debounceRef.current = setTimeout(() => {
+        onChange(nextValue);
+        debounceRef.current = null;
+      }, 140);
+    },
+    [onChange]
+  );
+
+  const handleInputChange = useCallback(
+    (nextValue: string) => {
+      setDraftValue(nextValue);
+      debouncedChange(nextValue);
+    },
+    [debouncedChange]
+  );
+
+  const flushDraftToParent = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+
+    if (draftValue !== value) {
+      onChange(draftValue);
+    }
+  }, [draftValue, onChange, value]);
+
+  const handleSendRequest = useCallback(() => {
+    flushDraftToParent();
+    onSend(draftValue);
+  }, [draftValue, flushDraftToParent, onSend]);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      onSend();
+      handleSendRequest();
     }
   };
 
   const handleMicClick = useCallback(async () => {
     setVoiceError(null);
+
+    if (isOffline) {
+      setVoiceError(text.offlineVoiceHint ?? text.micDenied);
+      return;
+    }
 
     if (isRecording) {
       try {
@@ -281,11 +353,14 @@ export function ChatInput({
     onVoiceResult,
     startRecording,
     stopRecording,
+    isOffline,
+    text.offlineVoiceHint,
     text.micDenied,
     text.voiceFailed,
   ]);
 
   const isDisabled = isLoading || isTranscribing;
+  const isMicDisabled = isDisabled || isOffline;
 
   return (
     <div className="shrink-0 border-t border-border bg-card/60 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:px-6">
@@ -357,7 +432,7 @@ export function ChatInput({
           variant="ghost"
           size="icon"
           onClick={handleMicClick}
-          disabled={isDisabled}
+          disabled={isMicDisabled}
           className={`shrink-0 ${isRecording ? "text-destructive hover:text-destructive" : ""}`}
           aria-label={isRecording ? text.stopRecording : text.startVoiceInput}
           id="voice-input-button"
@@ -373,8 +448,8 @@ export function ChatInput({
 
         <Input
           ref={inputRef}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          value={draftValue}
+          onChange={(e) => handleInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={
             isTranscribing
@@ -402,8 +477,8 @@ export function ChatInput({
         </Button>
 
         <Button
-          onClick={onSend}
-          disabled={isDisabled || !value.trim()}
+          onClick={handleSendRequest}
+          disabled={isDisabled || !draftValue.trim()}
           size="icon"
           className="shrink-0"
           id="chat-send-button"
