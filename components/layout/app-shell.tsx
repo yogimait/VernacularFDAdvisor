@@ -66,6 +66,26 @@ export function AppShell({ children }: AppShellProps) {
       description: "Jo language me aap comfortable ho woh select karo. Baad me bhi change kar sakte ho.",
       continue: "Continue",
     },
+    marathi: {
+      title: "तुमची भाषा निवडा",
+      description: "ज्या भाषेत तुम्ही अधिक सहज आहात ती निवडा. ही भाषा नंतर हेडरमधून बदलू शकता.",
+      continue: "पुढे चालू ठेवा",
+    },
+    gujarati: {
+      title: "તમારી ભાષા પસંદ કરો",
+      description: "જે ભાષામાં તમે વધુ આરામદાયક હો તે પસંદ કરો. તમે આને પછી હેડર પરથી બદલી શકો છો.",
+      continue: "આગળ વધો",
+    },
+    tamil: {
+      title: "உங்கள் மொழியைத் தேர்வுசெய்க",
+      description: "நீங்கள் வசதியாக இருக்கும் மொழியைத் தேர்வுசெய்க. இதை பின்னர் தலைப்பில் இருந்து மாற்றலாம்.",
+      continue: "தொடரவும்",
+    },
+    bhojpuri: {
+      title: "अपन भाषा चुनीं",
+      description: "जे भाषा में रउरा सभसे सहज बानी, उहे चुनीं। एहके बाद में हेडर से बदल सकतानी।",
+      continue: "आगे बढ़ीं",
+    },
   });
 
   useEffect(() => {
