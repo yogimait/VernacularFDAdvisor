@@ -43,7 +43,14 @@ export function AppShell({ children }: AppShellProps) {
     },
     () => false
   );
-  const onboardingText = pickLocalized(language, {
+  const [selectedOnboardingLanguage, setSelectedOnboardingLanguage] =
+    useState<Language>("en");
+  const [hasCompletedLanguageOnboarding, setHasCompletedLanguageOnboarding] =
+    useState(false);
+  const shouldRenderLanguageOnboarding =
+    showLanguageOnboarding && !hasCompletedLanguageOnboarding;
+
+  const onboardingText = pickLocalized(selectedOnboardingLanguage, {
     english: {
       title: "Choose your language",
       description: "Pick the language you are most comfortable with. You can change this anytime from the header.",
@@ -72,12 +79,18 @@ export function AppShell({ children }: AppShellProps) {
     };
   }, []);
 
-  const completeLanguageOnboarding = (selectedLanguage: Language) => {
-    setLanguage(selectedLanguage);
+  useEffect(() => {
+    setSelectedOnboardingLanguage(language);
+  }, [language]);
+
+  const completeLanguageOnboarding = () => {
+    setLanguage(selectedOnboardingLanguage);
 
     if (typeof window !== "undefined") {
       window.localStorage.setItem(LANGUAGE_ONBOARDING_SEEN_KEY, "1");
     }
+
+    setHasCompletedLanguageOnboarding(true);
   };
 
   return (
@@ -111,7 +124,7 @@ export function AppShell({ children }: AppShellProps) {
         </div>
       </main>
 
-      {showLanguageOnboarding ? (
+      {shouldRenderLanguageOnboarding ? (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <Card
             role="dialog"
@@ -128,9 +141,11 @@ export function AppShell({ children }: AppShellProps) {
                 {LANGUAGE_SEQUENCE.map((langOption) => (
                   <Button
                     key={`language-onboarding-${langOption}`}
-                    variant={langOption === language ? "default" : "outline"}
+                    variant={
+                      langOption === selectedOnboardingLanguage ? "default" : "outline"
+                    }
                     className="justify-start"
-                    onClick={() => completeLanguageOnboarding(langOption)}
+                    onClick={() => setSelectedOnboardingLanguage(langOption)}
                   >
                     {LANGUAGE_LABELS[langOption]}
                   </Button>
@@ -139,7 +154,7 @@ export function AppShell({ children }: AppShellProps) {
               <Button
                 variant="ghost"
                 className="w-full"
-                onClick={() => completeLanguageOnboarding(language)}
+                onClick={completeLanguageOnboarding}
               >
                 {onboardingText.continue}
               </Button>
