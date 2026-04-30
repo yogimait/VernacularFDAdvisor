@@ -10,33 +10,33 @@ export function WelcomeScreen({ onSuggestionClick }: WelcomeScreenProps) {
   const { language } = useLanguage();
   const content = pickLocalized(language, {
     english: {
-      heading: "Welcome",
+      heading: "Ask in your language",
       description:
-        "I am your AI Financial Advisor. Ask me anything about Fixed Deposits.",
+        "Ask in English, Hindi, Gujarati, Tamil, or Hinglish. Example: Best FD for Rs 80k for 2 years?",
       suggestions: [
         {
           icon: RiQuestionLine,
-          label: "What is FD?",
-          prompt: "What is FD? Explain in simple words",
-          description: "Learn the basics",
+          label: "Compare SBI vs HDFC FD",
+          prompt: "Compare SBI vs HDFC FD",
+          description: "Safety, return, and flexibility",
         },
         {
           icon: RiBankLine,
-          label: "Best FD for 50,000?",
-          prompt: "Best FD options for 50,000",
-          description: "Get recommendations",
+          label: "Best FD for senior citizens",
+          prompt: "Best FD for senior citizens",
+          description: "Higher-rate options",
         },
         {
           icon: RiPercentLine,
-          label: "Interest rates explained",
-          prompt: "Explain FD interest rates with an example",
-          description: "Understand returns",
+          label: "Is Post Office safer than banks?",
+          prompt: "Is Post Office safer than banks for FD?",
+          description: "Trust and safety view",
         },
         {
           icon: RiExchangeLine,
-          label: "Compare bank FDs",
-          prompt: "Compare FD options across top banks",
-          description: "Side-by-side analysis",
+          label: "Rs 50,000 FD maturity in 1 year",
+          prompt: "Rs 50,000 FD maturity in 1 year",
+          description: "Quick estimate",
         },
       ],
     },

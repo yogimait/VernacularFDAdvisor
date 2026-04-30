@@ -127,7 +127,8 @@ export function ChatInput({
       recordingHint: "Recording... click mic to stop",
       transcribing: "Transcribing...",
       listening: "Listening...",
-      askPlaceholder: "Ask about Fixed Deposits...",
+      askPlaceholder:
+        "Ask in English, Hindi, Gujarati, Tamil or Hinglish... Example: Best FD for Rs 80k for 2 years?",
       stopRecording: "Stop recording",
       startVoiceInput: "Start voice input",
       fdCalculator: "FD Calculator",
@@ -141,7 +142,8 @@ export function ChatInput({
       recordingHint: "Recording... click mic to stop",
       transcribing: "Transcribing...",
       listening: "Listening...",
-      askPlaceholder: "Ask about Fixed Deposits...",
+      askPlaceholder:
+        "Ask in English, Hindi, Gujarati, Tamil or Hinglish... Example: Best FD for Rs 80k for 2 years?",
       stopRecording: "Stop recording",
       startVoiceInput: "Start voice input",
       fdCalculator: "FD Calculator",
@@ -253,6 +255,26 @@ export function ChatInput({
       responseStyle: "Response style",
       simpleMode: "Simple",
       detailedMode: "Detailed",
+    },
+    marathi: {
+      responseStyle: "उत्तर शैली",
+      simpleMode: "सोपे",
+      detailedMode: "तपशीलवार",
+    },
+    gujarati: {
+      responseStyle: "જવાબ શૈલી",
+      simpleMode: "સરળ",
+      detailedMode: "વિગતવાર",
+    },
+    tamil: {
+      responseStyle: "பதில் நடை",
+      simpleMode: "எளியது",
+      detailedMode: "விரிவாக",
+    },
+    bhojpuri: {
+      responseStyle: "जवाब शैली",
+      simpleMode: "सरल",
+      detailedMode: "विस्तार से",
     },
   });
 

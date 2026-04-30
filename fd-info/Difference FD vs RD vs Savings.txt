@@ -1,0 +1,31 @@
+**Fixed Deposits (FDs), Recurring Deposits (RDs), and Savings Accounts** are three distinct types of bank accounts designed to serve different financial needs, ranging from daily liquidity to long-term wealth creation. 
+
+Here is a detailed breakdown of the differences between them based on their core mechanics, interest rates, and liquidity:
+
+### **1. Savings Account (For Daily Liquidity & Everyday Banking)**
+A Savings Account is a demand deposit account meant to encourage a basic savings habit while allowing you to access your money whenever you need it.
+*   **Deposit Method:** You can deposit any amount of money at any time.
+*   **Interest Rates:** Savings accounts offer the lowest interest rates among the three options. The interest is typically calculated on your daily closing balance and credited to your account at regular intervals (such as quarterly).
+*   **Liquidity:** Highly liquid. You can withdraw your funds on demand at any time via ATMs, cheques, or digital transfers.
+*   **Best For:** Managing your daily expenses, paying bills, and keeping a portion of your emergency fund instantly accessible.
+
+### **2. Fixed Deposit (For Lump-Sum Investment & Guaranteed Returns)**
+A Fixed Deposit (also known as a Term Deposit) requires you to park a lump-sum amount of money with the bank for a predetermined, fixed period.
+*   **Deposit Method:** A single, one-time lump-sum deposit is made at the time of opening the account.
+*   **Interest Rates:** FDs offer significantly higher interest rates compared to regular savings accounts. The interest rate you lock in at the time of booking remains fixed for the entire tenure, providing guaranteed and predictable returns. You can choose to receive interest payouts monthly, quarterly, or as a compounded lump-sum at maturity.
+*   **Liquidity:** FDs come with a lock-in period (tenures range from 7 days to 10 years). While you can withdraw your money prematurely during emergencies, banks will levy a premature withdrawal penalty (usually between 0.50% and 1.00%), which reduces your overall earnings.
+*   **Best For:** Risk-averse individuals who have a lump sum of idle money and want to generate guaranteed, inflation-beating returns over a specific timeframe. 
+
+### **3. Recurring Deposit (For Systematic Saving & Goal Building)**
+A Recurring Deposit (RD) is a variation of a term deposit that allows you to build a corpus gradually over time instead of requiring a large upfront lump sum. 
+*   **Deposit Method:** You commit to depositing a fixed, pre-determined amount every month for a set tenure. You cannot alter the installment amount once it is fixed, and missing a payment deadline usually attracts a penalty fee.
+*   **Interest Rates:** The interest rates offered on RDs are generally identical to the corresponding Fixed Deposit rates for the same tenure. The interest is typically calculated on a quarterly compounding basis. 
+*   **Liquidity:** Like an FD, an RD has a strict maturity date (usually ranging from 6 months up to 10 years). Premature closure is permitted but will attract a penalty similar to FDs, and closing the account within the first month may result in zero interest paid.
+*   **Best For:** Salaried professionals or individuals with a steady monthly income who want to force themselves into a disciplined savings habit to achieve a specific future goal.
+
+### **Summary Comparison**
+| Feature | Savings Account | Fixed Deposit (FD) | Recurring Deposit (RD) |
+| :--- | :--- | :--- | :--- |
+| **Investment Style** | Flexible, anytime deposits | Single, upfront lump-sum deposit | Fixed monthly installments |
+| **Returns** | Low | High and fixed | High and fixed |
+| **Liquidity** | Instantly accessible | Locked in (penalty for early withdrawal) | Locked in (penalty for early withdrawal) |

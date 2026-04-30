@@ -1,0 +1,12 @@
+**Premature withdrawal** means closing a Fixed Deposit (FD) account, either partially or entirely, before its scheduled maturity date. Also commonly referred to as "premature closure" or "breaking an FD," this facility allows you to access your funds early to handle financial emergencies, unexpected costs, or cash shortages.
+
+When you make a premature withdrawal, you do not receive the returns you originally expected. The bank applies a specific two-step mechanism that reduces your earnings:
+*   **Interest Rate Downgrade:** You will not earn the interest rate you initially locked in. Instead, the bank recalculates your interest using the lower rate that was applicable for the exact period your money actually remained deposited.
+*   **Penalty Deduction:** On top of the downgraded rate, the bank will typically deduct a premature withdrawal penalty, which generally ranges from **0.50% to 1.00%**. 
+
+**Example of the Math:**
+If you open a 2-year FD at an 8.00% interest rate but withdraw the funds after exactly 1 year, the bank will look at what the 1-year rate was when you booked the FD (e.g., 7.50%). They will then subtract their penalty (e.g., 1.00%) from that rate. Ultimately, your effective interest rate drops to 6.50%.
+
+**Important Restrictions:**
+*   **The 7-Day Rule:** If you break an FD within the first 7 days of opening it, banks are generally not liable to pay you any interest at all.
+*   **Locked-in Deposits:** Certain types of deposits, specifically **5-year Tax-Saving FDs**, have a strict statutory lock-in period and do not allow premature withdrawals under any circumstances.

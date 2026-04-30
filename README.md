@@ -96,6 +96,11 @@ Open:
 - `npm run typecheck` - Run TypeScript type checks
 - `npm run format` - Format TypeScript files with Prettier
 
+## Ingestion Endpoint
+
+For secure ingestion of structured banking documents into the knowledge pipeline, see
+[docs/ingestion-api.md](docs/ingestion-api.md).
+
 ## Notes
 
 - FD rates and guidance are informational and may change over time.

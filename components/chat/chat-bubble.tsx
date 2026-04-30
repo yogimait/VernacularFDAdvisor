@@ -18,6 +18,44 @@ interface ChatBubbleProps {
   onActionClick?: (text: string) => void;
 }
 
+const TOPIC_LABELS: Record<string, string> = {
+  fd_basics: "FD Basics",
+  fd_rates: "FD Rates",
+  fd_vs_rd_vs_savings: "FD vs RD vs Savings",
+  deposit_insurance: "Deposit Insurance",
+  premature_withdrawal: "Premature Withdrawal",
+  taxation: "Tax and TDS",
+  savings_account: "Savings Account",
+  banking_ombudsman: "Banking Ombudsman",
+  senior_citizen_benefits: "Senior Citizen Benefits",
+  quarterly_payout: "Monthly and Quarterly Payouts",
+  rural_banking: "Rural Banking",
+};
+
+const TOPIC_ACRONYMS = new Set(["FD", "RD", "RBI", "SEBI", "DICGC", "KYC", "TDS", "NRI"]);
+
+function formatTopicLabel(topic?: string): string | null {
+  if (!topic) return null;
+  const key = topic.toLowerCase();
+  if (TOPIC_LABELS[key]) {
+    return TOPIC_LABELS[key];
+  }
+
+  const label = key.replace(/[_-]+/g, " ").trim();
+  if (!label) return null;
+
+  return label
+    .split(" ")
+    .map((word) => {
+      const upper = word.toUpperCase();
+      if (TOPIC_ACRONYMS.has(upper)) {
+        return upper;
+      }
+      return word[0]?.toUpperCase() + word.slice(1);
+    })
+    .join(" ");
+}
+
 // ── Fallback: render raw text with basic markdown formatting ──
 function formatRawContent(text: string) {
   const lines = text.split("\n");
@@ -87,6 +125,12 @@ function StructuredCard({
       tapToBook: "Tap to start guided booking",
       keyPoints: "Key Points",
       nextStep: "Next Step",
+      sources: "Sources",
+      confidenceHigh: "High confidence",
+      confidenceMedium: "Medium confidence",
+      confidenceLow: "Low confidence",
+      viewSnippet: "View snippet",
+      readSource: "Read source",
     },
     hindi: {
       explanation: "समझाइश",
@@ -95,6 +139,12 @@ function StructuredCard({
       tapToBook: "गाइडेड बुकिंग शुरू करने के लिए टैप करें",
       keyPoints: "मुख्य बिंदु",
       nextStep: "अगला कदम",
+      sources: "स्रोत",
+      confidenceHigh: "उच्च भरोसा",
+      confidenceMedium: "मध्यम भरोसा",
+      confidenceLow: "कम भरोसा",
+      viewSnippet: "Snippet देखें",
+      readSource: "स्रोत पढ़ें",
     },
     hinglish: {
       explanation: "Explanation",
@@ -103,6 +153,68 @@ function StructuredCard({
       tapToBook: "Guided booking start karne ke liye tap karein",
       keyPoints: "Key Points",
       nextStep: "Next Step",
+      sources: "Sources",
+      confidenceHigh: "High confidence",
+      confidenceMedium: "Medium confidence",
+      confidenceLow: "Low confidence",
+      viewSnippet: "Snippet dekho",
+      readSource: "Source padho",
+    },
+    marathi: {
+      explanation: "स्पष्टीकरण",
+      example: "उदाहरण",
+      recommendations: "शिफारसी",
+      tapToBook: "Guided booking सुरू करण्यासाठी टॅप करा",
+      keyPoints: "मुख्य मुद्दे",
+      nextStep: "पुढचा टप्पा",
+      sources: "स्रोत",
+      confidenceHigh: "उच्च विश्वास",
+      confidenceMedium: "मध्यम विश्वास",
+      confidenceLow: "कमी विश्वास",
+      viewSnippet: "Snippet पहा",
+      readSource: "स्रोत वाचा",
+    },
+    gujarati: {
+      explanation: "સમજૂતી",
+      example: "ઉદાહરણ",
+      recommendations: "ભલામણો",
+      tapToBook: "Guided booking શરૂ કરવા માટે ટેપ કરો",
+      keyPoints: "મુખ્ય મુદ્દાઓ",
+      nextStep: "આગલું પગલું",
+      sources: "સ્ત્રોતો",
+      confidenceHigh: "ઉચ્ચ વિશ્વાસ",
+      confidenceMedium: "મધ્યમ વિશ્વાસ",
+      confidenceLow: "ઓછો વિશ્વાસ",
+      viewSnippet: "Snippet જુઓ",
+      readSource: "સ્ત્રોત વાંચો",
+    },
+    tamil: {
+      explanation: "விளக்கம்",
+      example: "உதாரணம்",
+      recommendations: "பரிந்துரைகள்",
+      tapToBook: "Guided booking தொடங்க தட்டவும்",
+      keyPoints: "முக்கிய குறிப்புகள்",
+      nextStep: "அடுத்த படி",
+      sources: "ஆதாரங்கள்",
+      confidenceHigh: "உயர் நம்பிக்கை",
+      confidenceMedium: "மிதமான நம்பிக்கை",
+      confidenceLow: "குறைந்த நம்பிக்கை",
+      viewSnippet: "Snippet பார்க்க",
+      readSource: "ஆதாரத்தை படிக்க",
+    },
+    bhojpuri: {
+      explanation: "समझावन",
+      example: "उदाहरण",
+      recommendations: "सुझाव",
+      tapToBook: "Guided booking शुरू करे खातिर टैप करीं",
+      keyPoints: "मुख्य बिंदु",
+      nextStep: "अगिला कदम",
+      sources: "स्रोत",
+      confidenceHigh: "उच्च भरोसा",
+      confidenceMedium: "मध्यम भरोसा",
+      confidenceLow: "कम भरोसा",
+      viewSnippet: "Snippet देखीं",
+      readSource: "स्रोत पढ़ीं",
     },
   });
 
@@ -111,14 +223,14 @@ function StructuredCard({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* Explanation */}
       {data.explanation && (
         <div>
-          <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-primary">
-            💡 {text.explanation}
+          <p className="mb-0.5 text-[0.6875rem] font-medium text-muted-foreground">
+            {text.explanation}
           </p>
-          <p className="text-[0.8125rem] leading-relaxed text-card-foreground">
+          <p className="text-[0.875rem] leading-relaxed text-foreground">
             {data.explanation}
           </p>
         </div>
@@ -126,11 +238,11 @@ function StructuredCard({
 
       {/* Example */}
       {data.example && (
-        <div className="rounded-lg bg-primary/5 border border-primary/10 px-3 py-2.5">
-          <p className="mb-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-primary">
-            📌 {text.example}
+        <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+          <p className="mb-0.5 text-[0.6875rem] font-medium text-muted-foreground">
+            {text.example}
           </p>
-          <p className="text-[0.8125rem] leading-relaxed text-card-foreground">
+          <p className="text-[0.8125rem] leading-relaxed text-foreground">
             {data.example}
           </p>
         </div>
@@ -139,8 +251,8 @@ function StructuredCard({
       {/* Clickable Recommendation Cards (Phase 9) */}
       {data.recommendations && data.recommendations.length > 0 && (
         <div className="space-y-2">
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-primary">
-            🏦 {text.recommendations}
+          <p className="text-[0.6875rem] font-medium text-muted-foreground">
+            {text.recommendations}
           </p>
           {data.recommendations.map((rec, i) => (
             <button
@@ -191,8 +303,8 @@ function StructuredCard({
       {/* Key Points */}
       {data.points && data.points.length > 0 && (
         <div>
-          <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-primary">
-            📊 {text.keyPoints}
+          <p className="mb-0.5 text-[0.6875rem] font-medium text-muted-foreground">
+            {text.keyPoints}
           </p>
           <ul className="space-y-0.5">
             {data.points.map((point, i) => (
@@ -208,15 +320,65 @@ function StructuredCard({
         </div>
       )}
 
+      {/* Sources */}
+      {data.sources && data.sources.length > 0 && (
+        <div>
+          <p className="mb-0.5 text-[0.6875rem] font-medium text-muted-foreground">
+            {text.sources}
+          </p>
+          <ul className="space-y-1">
+            {data.sources.map((source, i) => (
+              <li key={i} className="text-[0.8125rem] leading-relaxed">
+                <div className="font-medium text-foreground">
+                  {source.authority ?? source.source ?? "Source"}
+                </div>
+                {(source.title || source.topic) && (
+                  <div className="text-[0.75rem] text-muted-foreground">
+                    {source.title ?? formatTopicLabel(source.topic ?? undefined)}
+                  </div>
+                )}
+                {source.confidence && (
+                  <div className="mt-0.5 text-[0.6875rem] text-muted-foreground">
+                    {source.confidence === "high"
+                      ? text.confidenceHigh
+                      : source.confidence === "medium"
+                        ? text.confidenceMedium
+                        : text.confidenceLow}
+                  </div>
+                )}
+                {source.snippet ? (
+                  <details className="mt-0.5 text-[0.75rem] text-muted-foreground">
+                    <summary className="cursor-pointer text-[0.6875rem] text-primary/70">
+                      {text.viewSnippet}
+                    </summary>
+                    <p className="mt-1">"{source.snippet}"</p>
+                  </details>
+                ) : null}
+                {source.url ? (
+                  <a
+                    href={source.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-0.5 inline-flex text-[0.6875rem] text-primary/70 hover:text-primary"
+                  >
+                    {text.readSource}
+                  </a>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Clickable Next Step (Phase 9) */}
       {data.nextStep && (
         <button
           onClick={() => onActionClick?.(data.nextStep!)}
-          className="flex w-full items-start gap-2 rounded-lg bg-primary/10 border border-primary/20 px-3 py-2.5 text-left transition-all duration-200 hover:bg-primary/15 hover:border-primary/30 active:scale-[0.98] group"
+          className="flex w-full items-start gap-2 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-left transition-all duration-200 hover:bg-primary/15 hover:border-primary/30 active:scale-[0.98] group"
         >
           <RiArrowRightLine className="size-4 shrink-0 text-primary mt-0.5 transition-transform group-hover:translate-x-0.5" />
           <div>
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-primary mb-0.5">
+            <p className="mb-0.5 text-[0.6875rem] font-medium text-primary">
               {text.nextStep}
             </p>
             <p className="text-[0.8125rem] leading-relaxed text-foreground">
@@ -237,6 +399,10 @@ function FeedbackButtons() {
     english: { thanks: "Thanks!", improve: "Noted, will improve!", helpful: "Helpful", notHelpful: "Not helpful" },
     hindi: { thanks: "धन्यवाद!", improve: "नोट किया, बेहतर करेंगे!", helpful: "उपयोगी", notHelpful: "उपयोगी नहीं" },
     hinglish: { thanks: "Thanks!", improve: "Noted, improve karenge!", helpful: "Helpful", notHelpful: "Helpful nahi" },
+    marathi: { thanks: "धन्यवाद!", improve: "नोंद घेतली, सुधारतो!", helpful: "उपयुक्त", notHelpful: "उपयुक्त नाही" },
+    gujarati: { thanks: "આભાર!", improve: "નોંધ લીધી, સુધારશું!", helpful: "ઉપયોગી", notHelpful: "ઉપયોગી નથી" },
+    tamil: { thanks: "நன்றி!", improve: "குறிப்பு எடுத்தோம், மேம்படுத்துகிறோம்!", helpful: "பயனுள்ளது", notHelpful: "பயனில்லை" },
+    bhojpuri: { thanks: "धन्यवाद!", improve: "नोट कर लिहनी, सुधारब!", helpful: "काम के", notHelpful: "काम के ना" },
   });
 
   if (feedback) {

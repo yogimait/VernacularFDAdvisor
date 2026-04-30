@@ -55,6 +55,16 @@ export interface FDBookingFlow {
   estimatedYearlyPayout?: number;
 }
 
+export interface SourceCitation {
+  source?: string;
+  authority?: string;
+  title?: string;
+  url?: string;
+  topic?: string;
+  snippet?: string;
+  confidence?: "high" | "medium" | "low";
+}
+
 export interface StructuredResponse {
   type: StructuredResponseType;
   explanation?: string;
@@ -63,6 +73,7 @@ export interface StructuredResponse {
   nextStep?: string;
   recommendations?: FDRecommendation[];
   bookingFlow?: FDBookingFlow;
+  sources?: SourceCitation[];
 }
 
 export interface FDRecommendation {

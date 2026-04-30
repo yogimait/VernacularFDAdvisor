@@ -47,8 +47,9 @@ export function OpenFDPage() {
   const { language } = useLanguage();
   const text = pickLocalized(language, {
     english: {
-      title: "Open FD Flow",
-      description: "Fill details and see your FD result instantly.",
+      title: "Open your FD in guided steps",
+      description:
+        "Choose bank, amount, tenure, and preferences - we simplify the process.",
       bookingDetails: "Booking Details",
       selectBank: "Select Bank",
       amount: "Amount (Rs)",
@@ -75,6 +76,12 @@ export function OpenFDPage() {
       growthTimeline: "Growth Timeline",
       growthTimelineHint: "See how your money grows month by month.",
       quickTenure: "Quick tenure",
+      trustLine:
+        "Estimated returns use indexed data. Verify final bank rate and applicable penalties before booking.",
+      finalChecklist: "Final confirmation checklist",
+      lockInNote: "Lock-in period depends on selected tenure.",
+      penaltyNote: "Premature withdrawal penalty may apply.",
+      verifyRate: "Verify final rate on bank side before payment.",
     },
     hindi: {
       title: "FD खोलें फ्लो",
@@ -704,6 +711,12 @@ export function OpenFDPage() {
                     {text.step} {currentStep}/{STEPS.length}
                   </Badge>
                 </div>
+                <div className="rounded-md border border-border bg-background/70 p-3">
+                  <p className="mb-1 font-medium text-foreground">{text.finalChecklist}</p>
+                  <p>{text.lockInNote}</p>
+                  <p>{text.penaltyNote}</p>
+                  <p>{text.verifyRate}</p>
+                </div>
               </CardContent>
               <CardFooter>
                 <Button variant="outline" onClick={() => router.push("/chat")}>
@@ -711,6 +724,7 @@ export function OpenFDPage() {
                 </Button>
               </CardFooter>
             </Card>
+            <p className="text-xs text-muted-foreground">{text.trustLine}</p>
 
             <Card className="border border-border bg-card/70">
               <CardHeader className="pb-2">

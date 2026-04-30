@@ -59,16 +59,17 @@ export function ExploreFDPage() {
   const text = pickLocalized(language, {
     english: {
       title: "Explore FD Options",
-      description: "Browse fixed deposit cards using filters, sorting, and quick actions.",
-      aiShortcutTitle: "Not sure what to choose?",
-      aiShortcutDescription: "Use filters or let AI guide you in 1 minute.",
-      askAiRecommendation: "Ask AI for recommendation",
+      description:
+        "Filter by return, safety, tenure, and institution type - or let AI shortlist your top options.",
+      aiShortcutTitle: "Not sure which FD fits you?",
+      aiShortcutDescription: "Use filters or get a personalized shortlist in one step.",
+      askAiRecommendation: "Get My Best FD",
       amount: "Amount",
       duration: "Duration",
       anyDuration: "Any duration",
-      riskLevel: "Risk Level",
-      bankType: "Bank Type",
-      sortBy: "Sort By",
+      riskLevel: "Safety Preference",
+      bankType: "Institution Type",
+      sortBy: "Prioritize By",
       all: "All",
       safe: "Safe",
       balanced: "Balanced",
@@ -87,8 +88,9 @@ export function ExploreFDPage() {
       minAmount: "Min amount",
       maturityEstimate: "Maturity estimate",
       protectedLabel: "DICGC Protected",
-      openFd: "Open FD",
+      openFd: "Open",
       compare: "Compare",
+      askAi: "Ask AI",
       noCards: "No FD cards match your filters. Try increasing amount or changing bank type.",
       closeDetails: "Close details",
       atRate: "at",
@@ -97,8 +99,8 @@ export function ExploreFDPage() {
       projectedMaturity: "Projected maturity on",
       compareBank: "Compare Bank",
       close: "Close",
-      quickInsights: "Easy Summary",
-      eligibleCards: "Eligible cards",
+      quickInsights: "Profile Summary",
+      eligibleCards: "Available options for your profile",
       avgRate: "Avg rate",
       bestRate: "Best rate",
       rateByTenure: "Average return by tenure",
@@ -107,6 +109,13 @@ export function ExploreFDPage() {
       interestView: "Interest",
       basedOnAmount: "Based on your amount",
       noVisualData: "No visual data for current filters.",
+      safestOption: "Safest major-bank option",
+      highestRateFound: "Highest rate found",
+      trustLine:
+        "Rates use latest indexed public data. Final rates are subject to bank revision.",
+      cardHighReturnTag: "High return option",
+      cardSafetyTag: "DICGC insured up to Rs 5 lakh (as applicable)",
+      cardBestFor: "Best for",
     },
     hindi: {
       title: "FD विकल्प खोजें",
@@ -680,6 +689,18 @@ export function ExploreFDPage() {
                 </p>
                 <p className="mt-1 text-base font-semibold text-foreground">{bestRate.toFixed(2)}%</p>
               </div>
+              <div className="rounded-md border border-border bg-background/70 px-3 py-2">
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {text.highestRateFound}
+                </p>
+                <p className="mt-1 text-base font-semibold text-foreground">{bestRate.toFixed(2)}% p.a.</p>
+              </div>
+              <div className="rounded-md border border-border bg-background/70 px-3 py-2">
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {text.safestOption}
+                </p>
+                <p className="mt-1 text-base font-semibold text-foreground">SBI / HDFC</p>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -728,9 +749,12 @@ export function ExploreFDPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-1 text-[0.75rem] text-muted-foreground">
+                  <p className="font-medium text-foreground">{text.cardHighReturnTag} for {option.tenure} {text.months}</p>
                   <p>{text.tenure}: {option.tenure} {text.months}</p>
                   <p>{text.minAmount}: Rs {option.minAmount.toLocaleString("en-IN")}</p>
                   <p>{text.maturityEstimate}: Rs {projection.maturityAmount.toLocaleString("en-IN")}</p>
+                  <p>{text.cardSafetyTag}</p>
+                  <p>{text.cardBestFor}: {option.category === "small-finance" ? "yield-focused users" : "safety-first users"}</p>
                   <div className="pt-1">
                     <Badge variant="outline" className="gap-1">
                       <RiShieldCheckLine className="size-3" />
@@ -772,6 +796,15 @@ export function ExploreFDPage() {
                   >
                     {text.compare}
                   </Button>
+                  <Button
+                    variant="outline"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openChatWithMessage(router, `Why is ${option.bank} a good FD option for me?`);
+                    }}
+                  >
+                    {text.askAi}
+                  </Button>
                 </CardFooter>
               </Card>
             );
@@ -785,6 +818,7 @@ export function ExploreFDPage() {
             </CardContent>
           </Card>
         )}
+        <p className="text-xs text-muted-foreground">{text.trustLine}</p>
       </div>
 
       {selectedCard && (

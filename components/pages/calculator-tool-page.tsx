@@ -32,8 +32,8 @@ export function CalculatorToolPage() {
   const { language } = useLanguage();
   const text = pickLocalized(language, {
     english: {
-      title: "FD Calculator",
-      description: "Simple calculator to see maturity and interest quickly.",
+      title: "FD Return Calculator",
+      description: "Estimate maturity, total interest, and compare tenures instantly.",
       amount: "Amount (Rs)",
       duration: "Duration (months)",
       interestRate: "Interest Rate (% p.a.)",
@@ -53,6 +53,10 @@ export function CalculatorToolPage() {
       visualHint: "Longer tenure usually means more final money.",
       maturityEstimate: "Maturity estimate",
       principalVsInterest: "Principal vs interest split",
+      effectiveMonthlyGain: "Effective monthly gain",
+      smartInsights: "Smart insights",
+      trustLine:
+        "Rates are indicative based on indexed data and may differ from live bank rates.",
     },
     hindi: {
       title: "FD कैलकुलेटर",
@@ -381,6 +385,9 @@ export function CalculatorToolPage() {
             <p>
               {text.interestEarned}: <span className="font-semibold text-foreground">Rs {result.interestEarned.toLocaleString("en-IN")}</span>
             </p>
+            <p>
+              {text.effectiveMonthlyGain}: <span className="font-semibold text-foreground">Rs {Math.round(result.interestEarned / Math.max(tenureMonths, 1)).toLocaleString("en-IN")}</span>
+            </p>
             <Badge variant="outline">{text.compounding}: {compoundingLabel}</Badge>
             <div className="pt-1">
               <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -394,6 +401,14 @@ export function CalculatorToolPage() {
                 <span>{text.principal}</span>
                 <span>{text.interestEarned}</span>
               </div>
+            </div>
+            <div className="rounded-md border border-border bg-background/70 p-3">
+              <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                {text.smartInsights}
+              </p>
+              <p>Extending tenure can increase total returns if rate stays similar.</p>
+              <p>Quarterly compounding generally beats simple payout for growth goals.</p>
+              <p>Compare with SBI/HDFC options to balance trust and return.</p>
             </div>
           </CardContent>
           <CardFooter className="flex flex-wrap gap-2 pt-0">
@@ -422,6 +437,7 @@ export function CalculatorToolPage() {
             </Button>
           </CardFooter>
         </Card>
+        <p className="text-xs text-muted-foreground">{text.trustLine}</p>
       </div>
     </div>
   );

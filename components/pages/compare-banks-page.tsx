@@ -82,8 +82,9 @@ export function CompareBanksPage() {
   const { language } = useLanguage();
   const text = pickLocalized(language, {
     english: {
-      title: "Compare Banks",
-      description: "Pick banks and see the difference in one simple view.",
+      title: "Compare FD options side-by-side",
+      description:
+        "See return, trust level, lock-in flexibility, and maturity amount instantly.",
       feature: "Feature",
       best: "Best",
       rate: "Rate",
@@ -101,10 +102,17 @@ export function CompareBanksPage() {
       metricMinAmount: "Lowest min amount",
       metricBestTenure: "Shortest best tenure",
       maturitySimulator: "Maturity Simulator",
-      maturitySimulatorHint: "Move amount and tenure. Bigger bar means more final money.",
+      maturitySimulatorHint: "Move amount and tenure to see who gives better maturity returns.",
       compareAmount: "Compare amount",
       compareTenure: "Compare tenure",
       maturityAtTenure: "Maturity at selected tenure",
+      maturityValue: "Maturity Value",
+      bankType: "Bank Type",
+      earlyWithdrawal: "Early Withdrawal",
+      seniorBenefit: "Senior Citizen Benefit",
+      safetyPerception: "Safety Perception",
+      recommendedFor: "Recommended For",
+      insightTitle: "Quick Insights",
     },
     hindi: {
       title: "बैंक तुलना",
@@ -515,6 +523,21 @@ export function CompareBanksPage() {
                 </div>
               ))}
             </div>
+            <div className="rounded-md border border-border bg-background/70 p-3 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">{text.insightTitle}</p>
+              {scenarioRows[0] && scenarioRows[1] ? (
+                <>
+                  <p>
+                    {scenarioRows[0].bank} leads by Rs{" "}
+                    {(scenarioRows[0].maturity - scenarioRows[1].maturity).toLocaleString("en-IN")}{" "}
+                    for {scenarioTenure} months.
+                  </p>
+                  <p>
+                    Difference across top options is often small below Rs 1 lakh; compare safety too.
+                  </p>
+                </>
+              ) : null}
+            </div>
           </CardContent>
         </Card>
 
@@ -553,10 +576,73 @@ export function CompareBanksPage() {
                   ))}
                 </tr>
                 <tr className="border-b border-border/70">
+                  <td className="px-3 py-2 text-muted-foreground">{text.maturityValue}</td>
+                  {summaries.map((summary) => {
+                    const row = nearestTenureOption(summary.bank, scenarioTenure);
+                    const maturity = calculateFD(
+                      scenarioAmount,
+                      row.rate,
+                      scenarioTenure,
+                      "quarterly"
+                    ).maturityAmount;
+                    return (
+                      <td key={`${summary.bank}-maturity`} className="px-3 py-2 text-foreground">
+                        Rs {maturity.toLocaleString("en-IN")}
+                      </td>
+                    );
+                  })}
+                </tr>
+                <tr className="border-b border-border/70">
                   <td className="px-3 py-2 text-muted-foreground">{text.safety}</td>
                   {summaries.map((summary) => (
                     <td key={summary.bank} className="px-3 py-2 text-foreground">
                       {localizedSafety(summary.safety)}
+                    </td>
+                  ))}
+                </tr>
+                <tr className="border-b border-border/70">
+                  <td className="px-3 py-2 text-muted-foreground">{text.bankType}</td>
+                  {summaries.map((summary) => (
+                    <td key={`${summary.bank}-type`} className="px-3 py-2 text-foreground">
+                      {summary.bank.includes("Post Office")
+                        ? "Government"
+                        : summary.bank.includes("Small Finance")
+                          ? "Small Finance"
+                          : "Bank"}
+                    </td>
+                  ))}
+                </tr>
+                <tr className="border-b border-border/70">
+                  <td className="px-3 py-2 text-muted-foreground">{text.earlyWithdrawal}</td>
+                  {summaries.map((summary) => (
+                    <td key={`${summary.bank}-withdrawal`} className="px-3 py-2 text-foreground">
+                      Penalty may apply
+                    </td>
+                  ))}
+                </tr>
+                <tr className="border-b border-border/70">
+                  <td className="px-3 py-2 text-muted-foreground">{text.seniorBenefit}</td>
+                  {summaries.map((summary) => (
+                    <td key={`${summary.bank}-senior`} className="px-3 py-2 text-foreground">
+                      Usually +0.25% to +0.75%
+                    </td>
+                  ))}
+                </tr>
+                <tr className="border-b border-border/70">
+                  <td className="px-3 py-2 text-muted-foreground">{text.safetyPerception}</td>
+                  {summaries.map((summary) => (
+                    <td key={`${summary.bank}-safety`} className="px-3 py-2 text-foreground">
+                      {localizedSafety(summary.safety)}
+                    </td>
+                  ))}
+                </tr>
+                <tr className="border-b border-border/70">
+                  <td className="px-3 py-2 text-muted-foreground">{text.recommendedFor}</td>
+                  {summaries.map((summary) => (
+                    <td key={`${summary.bank}-for`} className="px-3 py-2 text-foreground">
+                      {summary.safety === "High" || summary.safety === "Very High"
+                        ? "Safety-first users"
+                        : "Higher-yield seekers"}
                     </td>
                   ))}
                 </tr>

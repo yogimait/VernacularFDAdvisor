@@ -1,0 +1,14 @@
+A **monthly or quarterly interest payout** refers to a specific type of Fixed Deposit (FD) known as a **Non-Cumulative Fixed Deposit**. 
+
+Instead of letting your earned interest accumulate and compound over the entire tenure to be paid as a lump sum at maturity, this option allows you to receive your interest earnings directly into your bank account at regular, fixed intervals. 
+
+Here is how the different payout frequencies work mathematically and practically:
+
+*   **Quarterly Payout:** If you choose this option, the bank calculates your earnings on a **simple interest basis** and credits the interest to your account at the end of every calendar quarter (every three months). 
+*   **Monthly Payout:** Because standard FD interest is conventionally calculated at quarterly intervals, paying it out every single month means the bank is disbursing the money to you in advance. To account for this early payment and the absence of compounding, the interest is paid at a specially **discounted rate** rather than the exact contracted simple interest rate. 
+
+**Who is this best for?**
+Choosing a monthly or quarterly payout is highly suitable for individuals who need a **steady, regular source of income** to handle recurring everyday expenses. This makes it an ideal financial tool for retirees, freelancers, homemakers, or anyone seeking a predictable secondary income stream. 
+
+**The Trade-off**
+While you gain the benefit of regular liquidity, you miss out on the power of compounding. In a standard "Cumulative FD," the interest you earn is reinvested back into your principal, allowing you to earn "interest on your interest". Therefore, an FD with a monthly or quarterly payout will ultimately yield a slightly lower total return by the time it matures compared to a cumulative FD.

@@ -1,0 +1,24 @@
+Building on our earlier comparison, a **savings account** is fundamentally a form of demand deposit meant to encourage people to collect and save their money while keeping their funds highly accessible. While they offer lower returns than fixed deposits, they form the foundation of personal financial management and emergency planning.
+
+Here are the core mechanics and rules governing savings accounts:
+
+**1. Interest Calculation and Payouts**
+*   **Daily Product Basis:** Interest on your savings account is calculated on your daily closing balance (the end-of-day balance) at a rate determined by the bank.
+*   **Payout Frequency:** Commercial banks are required to credit the earned interest to your savings account at regular intervals, typically quarterly or even shorter. This interest must be credited regularly regardless of whether your account is actively being operated or has been frozen by authorities.
+*   **Tiered Rates:** Banks are permitted to offer differential, higher interest rates for end-of-day savings balances that exceed ₹1 lakh. 
+
+**2. Minimum Balance Requirements**
+Standard savings accounts usually require you to maintain a stipulated minimum balance, often calculated as an Average Monthly Balance (AMB) or Average Quarterly Balance (AQB). If your balance drops below this limit, the bank will levy penalty charges. Furthermore, some banks reserve the right to refuse to issue checkbooks, debit cards, or net banking PINs if this average balance isn't properly maintained.
+
+**3. The Basic Savings Bank Deposit Account (BSBDA)**
+To promote financial inclusion and help those who cannot maintain high balances, banks offer a specialized "Basic Savings Bank Deposit Account." This no-frills account features:
+*   **Zero minimum balance requirement**.
+*   No limit on the number and value of cash deposits you can make in a month.
+*   Basic facilities like cash deposits and ATM withdrawals completely free of charge.
+*   **The Restriction:** If you open a BSBDA, you are not allowed to hold any other regular savings account in that same bank. If you already have one, it must be closed within 30 days of opening the BSBDA.
+
+**4. Safety and Insurance**
+Just like fixed deposits, the money kept in your savings account is highly secure. Your balance (including any accrued interest) is covered by the Deposit Insurance and Credit Guarantee Corporation (DICGC) up to a maximum limit of ₹5 lakh per depositor, per bank.
+
+**5. Strategic Use in Budgeting**
+Savings accounts are the primary vehicle for the **"pay-yourself-first"** budgeting strategy. Financial experts recommend setting up automatic transfers so that a percentage of your income routes straight into your savings account to build a 3-to-6-month emergency fund *before* you pay your monthly bills or spend on discretionary wants. 

@@ -14,9 +14,17 @@ import { detectMessageLanguage } from "@/lib/language-detection";
 import {
   buildKnowledgePromptSection,
   retrieveKnowledgeContext,
+  type KnowledgeChunk,
   type KnowledgeType,
 } from "@/lib/minimal-rag";
-import type { StructuredResponse, FDOption, FDRecommendation } from "@/types/chat";
+import { formatContextForPrompt, retrieveContext } from "@/lib/rag/retriever";
+import type { RetrievalResponse } from "@/lib/rag/types";
+import type {
+  StructuredResponse,
+  FDOption,
+  FDRecommendation,
+  SourceCitation,
+} from "@/types/chat";
 
 // Initialize Groq client
 const groq = new Groq({
@@ -32,10 +40,19 @@ You MUST respond in this EXACT JSON format. No text outside the JSON:
 
 {
   "type": "explanation" or "recommendation" or "greeting",
-  "explanation": "2-4 sentences giving genuinely useful, specific information",
-  "example": "One real-life example with ₹ numbers (vary the amounts each time!)",
-  "points": ["point 1", "point 2", "point 3"],
-  "nextStep": "One clear, actionable suggestion"
+  "explanation": "Direct answer paragraph (2-4 short sentences, conversational)",
+  "example": "One real-life example with ₹ numbers ONLY if it adds value",
+  "points": ["compact takeaway 1", "compact takeaway 2", "compact takeaway 3"],
+  "nextStep": "One clear, actionable suggestion",
+  "sources": [
+    {
+      "source": "SBI FD data and R&R.txt",
+      "authority": "State Bank of India",
+      "title": "Fixed Deposit Terms and Rules",
+      "topic": "premature_withdrawal",
+      "snippet": "Premature withdrawal may attract a penalty based on tenure."
+    }
+  ]
 }
 
 For recommendations, also include:
@@ -46,8 +63,19 @@ For recommendations, also include:
     {"bank": "Bank Name", "rate": 8.5, "tenure": 12, "maturity": 54250, "category": "small-finance", "reason": "specific reason why this option suits this user"}
   ],
   "points": ["key comparison point 1", "key comparison point 2"],
-  "nextStep": "what to do next"
+  "nextStep": "what to do next",
+  "sources": []
 }
+
+━━━ ANSWER FLOW (STRICT) ━━━
+
+1. Start with the direct answer in "explanation". No preamble.
+2. Add "example" ONLY if it clarifies the answer.
+3. Use 3-4 compact, non-repetitive points.
+4. Keep sources short and clean.
+5. End with one contextual, helpful next step.
+6. NEVER prefix sentence text with field labels like "explanation", "recommendation", "points", or "nextStep".
+7. Keep numeric values intact (example: 8.25%, 7.90%, 2.5 years). Never truncate decimals.
 
 For guided booking, include:
 {
@@ -76,8 +104,16 @@ For guided booking, include:
 3. Be SPECIFIC — mention actual bank names (SBI, HDFC, ICICI, Post Office, Suryoday), actual rates (6.50%, 7.10%, 8.25%), actual tenures.
 4. Use COMPARISONS to make advice tangible: "₹50,000 savings account mein 3.5% milega = ₹1,750/year. Same amount FD mein 7% pe = ₹3,500/year — double!"
 5. Vary your sentence structure. Don't start every explanation with "FD ek safe investment hai".
-6. When user mentions salary, savings, or personal finance — connect it naturally to FD advice. Don't just redirect, actually HELP them plan.
-7. Points should each teach something DIFFERENT — not just rephrase the same idea 3 times.
+6. Explanation must sound like a helpful assistant talking to a real person, not a textbook.
+7. When user mentions salary, savings, or personal finance — connect it naturally to FD advice. Don't just redirect, actually HELP them plan.
+8. Points should each teach something DIFFERENT — not just rephrase the same idea 3 times.
+9. If user asks for the highest returns, add a short safety reminder (DICGC coverage, bank category, premature rules).
+
+━━━ RATE FRESHNESS & CONFIDENCE ━━━
+
+1. If asked for rates without bank + tenure, ask for those details.
+2. If you mention a rate, label it as approximate and time-bound (as of the latest indexed data).
+3. If a number is not in the retrieved context, avoid giving exact figures and ask a clarifying question.
 
 ━━━ LANGUAGE BEHAVIOR POLICY (CRITICAL) ━━━
 
@@ -113,7 +149,7 @@ For guided booking, include:
 The "nextStep" field MUST ALWAYS contain actionable guidance based on context:
 
 CASE A — Informational query (no amount/duration given):
-→ nextStep: Ask if user wants FD recommendations. E.g. "Kya aap best FD options dekhna chahenge? Apna budget bataiye!"
+→ nextStep: Ask a TOPIC-ALIGNED follow-up. E.g. "FD vs savings ka quick comparison chahiye?" or "Premature withdrawal ke penalty estimate ke liye bank aur tenure bataiye."
 
 CASE B — Only amount given (no duration):
 → nextStep: Ask for duration. E.g. "Kitne time ke liye invest karna chahte ho — 6 months, 1 year, ya zyada?"
@@ -130,6 +166,12 @@ CASE E — Confused/vague user:
 CASE F — User mentions salary/savings/personal finance:
 → Instead of redirecting, HELP them plan: calculate how much to invest, suggest an FD split strategy, give a specific plan. E.g. "Agar salary ₹30,000 hai, toh ₹5,000-10,000 monthly FD mein daal sakte ho. Best options dekhein?"
 
+CASE G — Topic-specific follow-up:
+→ If question is about premature withdrawal: ask bank + tenure, or offer penalty impact estimate.
+→ If question is about tax/TDS: ask PAN status + estimated yearly interest.
+→ If question is about insurance/safety: ask total balance + bank name for coverage clarity.
+→ If question compares FD vs savings: offer quick return calculation or risk comparison.
+
 NEVER give a dead-end response without guidance.
 
 ━━━ SCOPE ━━━
@@ -141,7 +183,16 @@ NEVER give a dead-end response without guidance.
 
 ━━━ ACCURACY ━━━
 
-Use approximate realistic rates. Always mention "ye approximate rates hain".`;
+Use approximate realistic rates. Always mention "ye approximate rates hain".
+
+━━━ SOURCES & CITATIONS (MANDATORY WHEN CONTEXT PROVIDED) ━━━
+
+1. Use ONLY the retrieved context for factual claims.
+2. If you used any retrieved facts, include 1-2 entries in "sources".
+3. Each source must come from the retrieved context (match the source names).
+4. Keep snippets short (<=120 chars) or omit snippet if not needed.
+5. Prefer authority + title (institution first, then document name). Do not surface raw filenames to users.
+6. If no relevant context is provided, set "sources": [] and say the exact source is unavailable.`;
 
 // ── Recommendation-specific instructions ──
 const RECOMMENDATION_PROMPT = `
@@ -275,10 +326,10 @@ function normalizeResponseMode(value: unknown): ResponseMode {
 
 function getResponseModeInstruction(mode: ResponseMode): string {
   if (mode === "detailed") {
-    return "Use DETAILED mode: explanation 3-4 short sentences, include one practical comparison with numbers, keep 3 distinct points, and nextStep can be 1-2 clear lines.";
+    return "Use DETAILED mode: explanation is one direct-answer paragraph (2-4 short sentences), include one practical comparison with numbers, example only if it adds value, keep 3-4 distinct points, 1-2 concise sources, and nextStep can be 1-2 clear lines. If rates appear, add 'approx' and 'as of latest indexed data'.";
   }
 
-  return "Use SIMPLE mode: explanation in 1-2 short sentences, max 2 points, and one very short nextStep. Keep language very plain and avoid extra details.";
+  return "Use SIMPLE mode: explanation is 1 short sentence, example only if essential, 2 points max, 1 short source if used, and one very short contextual nextStep. Keep language very plain and avoid extra details. If rates appear, add 'approx'.";
 }
 
 function toBookingLanguage(language: SupportedChatLanguage): BookingLanguage {
@@ -336,12 +387,74 @@ function shouldNormalizeHindiOutput(text: string): boolean {
   return latinCount >= 20 && latinCount > devanagariCount;
 }
 
-async function rewriteStructuredToHindi(
-  structured: StructuredResponse
+function shouldNormalizeForLanguage(
+  text: string,
+  language: SupportedChatLanguage
+): boolean {
+  if (!text.trim()) return false;
+  const latinCount = (text.match(/[A-Za-z]/g) || []).length;
+  if (latinCount < 20) return false;
+
+  if (language === "hi" || language === "mr" || language === "bho") {
+    const devanagariCount = (text.match(/[\u0900-\u097F]/g) || []).length;
+    return latinCount > devanagariCount;
+  }
+
+  if (language === "gu") {
+    const gujaratiCount = (text.match(/[\u0A80-\u0AFF]/g) || []).length;
+    return latinCount > gujaratiCount;
+  }
+
+  if (language === "ta") {
+    const tamilCount = (text.match(/[\u0B80-\u0BFF]/g) || []).length;
+    return latinCount > tamilCount;
+  }
+
+  return false;
+}
+
+function shouldForceRewriteLanguage(language: SupportedChatLanguage): boolean {
+  return (
+    language === "mr" ||
+    language === "gu" ||
+    language === "ta" ||
+    language === "bho"
+  );
+}
+
+function getLanguageRewriteInstruction(language: SupportedChatLanguage): string | null {
+  if (language === "hi") {
+    return "Rewrite into pure Hindi (Devanagari script only).";
+  }
+  if (language === "mr") {
+    return "Rewrite into natural Marathi (Devanagari script only).";
+  }
+  if (language === "gu") {
+    return "Rewrite into natural Gujarati (Gujarati script only).";
+  }
+  if (language === "ta") {
+    return "Rewrite into natural Tamil (Tamil script only).";
+  }
+  if (language === "bho") {
+    return "Rewrite into natural Bhojpuri (Devanagari script only).";
+  }
+  return null;
+}
+
+async function rewriteStructuredToLanguage(
+  structured: StructuredResponse,
+  language: SupportedChatLanguage
 ): Promise<StructuredResponse | null> {
+  const rewriteInstruction = getLanguageRewriteInstruction(language);
+  if (!rewriteInstruction) {
+    return null;
+  }
+
   const prompt =
-    "Rewrite every user-visible text VALUE in this JSON into pure Hindi (Devanagari script only). " +
+    `${rewriteInstruction} ` +
+    "Rewrite every user-visible text VALUE in this JSON. " +
     "Keep keys, hierarchy, arrays, numbers, bank names, percentages, and overall meaning unchanged. " +
+    "Do NOT translate values inside the 'sources' array; keep sources[].source, sources[].topic, and sources[].snippet unchanged. " +
     "Return ONLY valid JSON with no markdown.";
 
   try {
@@ -364,9 +477,16 @@ async function rewriteStructuredToHindi(
   }
 }
 
-async function rewriteTextToHindi(text: string): Promise<string | null> {
+async function rewriteTextToLanguage(
+  text: string,
+  language: SupportedChatLanguage
+): Promise<string | null> {
+  const rewriteInstruction = getLanguageRewriteInstruction(language);
+  if (!rewriteInstruction) {
+    return null;
+  }
   const prompt =
-    "Rewrite the following answer into pure Hindi (Devanagari script only). " +
+    `${rewriteInstruction} ` +
     "Keep numbers, bank names, and factual meaning unchanged. Return plain text only.";
 
   try {
@@ -477,6 +597,334 @@ async function translateToEnglishForRetrieval(
   }
 }
 
+function canUseVectorRag(): boolean {
+  const supabaseUrl =
+    process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+  const hfToken = process.env.HF_TOKEN;
+  return Boolean(supabaseUrl && serviceKey && hfToken);
+}
+
+function buildVectorKnowledgePromptSection(
+  response: RetrievalResponse
+): string {
+  if (response.results.length === 0) {
+    return [
+      "━━━ RETRIEVED FD KNOWLEDGE CONTEXT (VECTOR RAG) ━━━",
+      `Query: ${response.query}`,
+      "No direct chunk was retrieved. Give cautious guidance and say when exact data is unavailable.",
+      "Do not invent exact rates, tax thresholds, or policy numbers.",
+    ].join("\n");
+  }
+
+  return [
+    "━━━ RETRIEVED FD KNOWLEDGE CONTEXT (VECTOR RAG) ━━━",
+    `Query: ${response.query}`,
+    "Use the sources below as the only factual grounding.",
+    "If you use any retrieved facts, cite them in the sources array.",
+    "If context is insufficient, say so and keep sources empty.",
+    "",
+    formatContextForPrompt(response),
+  ].join("\n");
+}
+
+interface SourcePresentation {
+  authority: string;
+  title: string;
+  url?: string;
+}
+
+const BANK_AUTHORITY_MAP: Record<string, string> = {
+  SBI: "State Bank of India",
+  HDFC: "HDFC Bank",
+  ICICI: "ICICI Bank",
+  Axis: "Axis Bank",
+  Suryoday: "Suryoday Small Finance Bank",
+};
+
+const INTERNAL_AUTHORITY = "Banking Education Resource";
+
+const SOURCE_OVERRIDES: Record<string, SourcePresentation> = {
+  "fd-basics.txt": {
+    authority: INTERNAL_AUTHORITY,
+    title: "Fixed Deposit Basics",
+  },
+  "difference fd vs rd vs savings.txt": {
+    authority: INTERNAL_AUTHORITY,
+    title: "FD vs RD vs Savings Comparison",
+  },
+  "premature withdrawal.txt": {
+    authority: INTERNAL_AUTHORITY,
+    title: "FD Premature Withdrawal Rules",
+  },
+  "savings account basics.txt": {
+    authority: INTERNAL_AUTHORITY,
+    title: "Savings Account Basics",
+  },
+  "tax-rules.txt": {
+    authority: INTERNAL_AUTHORITY,
+    title: "FD Tax and TDS Rules",
+  },
+  "quarterly.txt": {
+    authority: INTERNAL_AUTHORITY,
+    title: "Monthly and Quarterly FD Payouts",
+  },
+  "rural-fd.txt": {
+    authority: INTERNAL_AUTHORITY,
+    title: "Rural FD Access and Inclusion",
+  },
+  "multilingual-issue.txt": {
+    authority: INTERNAL_AUTHORITY,
+    title: "Regional Language Access in Banking",
+  },
+  "bank-info.txt": {
+    authority: INTERNAL_AUTHORITY,
+    title: "Banking Basics and Concepts",
+  },
+  "banks-fd.txt": {
+    authority: INTERNAL_AUTHORITY,
+    title: "Bank Fixed Deposit Rates Overview",
+  },
+  "fd-info.txt": {
+    authority: INTERNAL_AUTHORITY,
+    title: "Fixed Deposit Overview",
+  },
+  "bank-fd-info.json": {
+    authority: INTERNAL_AUTHORITY,
+    title: "Indian Bank FD Rate Snapshot",
+  },
+  "user-fd-data.json": {
+    authority: INTERNAL_AUTHORITY,
+    title: "FD User Demographics Snapshot",
+  },
+  "yearly-data.json": {
+    authority: INTERNAL_AUTHORITY,
+    title: "FD Market Yearly Snapshot",
+  },
+  "sbi fd data and r&r.txt": {
+    authority: "State Bank of India",
+    title: "Fixed Deposit Terms and Rules",
+  },
+  "icici bank fd data and r&r.txt": {
+    authority: "ICICI Bank",
+    title: "Fixed Deposit Terms and Rules",
+  },
+  "axis bank fd and r&r.txt": {
+    authority: "Axis Bank",
+    title: "Fixed Deposit Terms and Rules",
+  },
+  "hdfc fd rule&regulation.txt": {
+    authority: "HDFC Bank",
+    title: "Fixed Deposit Terms and Rules",
+  },
+  "hdfc fd trend.txt": {
+    authority: "HDFC Bank",
+    title: "Fixed Deposit Rate Trends",
+  },
+  "ssfb fd data and r&r.txt": {
+    authority: "Suryoday Small Finance Bank",
+    title: "Fixed Deposit Terms and Rules",
+  },
+  "banking-ombudsman-scheme-faq.pdf": {
+    authority: "Reserve Bank of India",
+    title: "Banking Ombudsman Scheme FAQ",
+  },
+};
+
+const ACRONYM_WORDS = new Set([
+  "FD",
+  "RD",
+  "RBI",
+  "SEBI",
+  "DICGC",
+  "SBI",
+  "HDFC",
+  "ICICI",
+  "KYC",
+  "TDS",
+  "NRI",
+  "NRE",
+  "NRO",
+  "SSFB",
+  "FAQ",
+]);
+
+function normalizeSourceKey(source: string): string {
+  return source.trim().toLowerCase();
+}
+
+function titleCaseWithAcronyms(value: string): string {
+  return value
+    .split(" ")
+    .map((word) => {
+      if (!word) return word;
+      const upper = word.toUpperCase();
+      if (ACRONYM_WORDS.has(upper)) {
+        return upper;
+      }
+      return word[0].toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(" ");
+}
+
+function humanizeFilename(source: string): string {
+  const base = source.replace(/\.[^.]+$/, "");
+  const normalized = base
+    .replace(/r\s*&\s*r/gi, "Rules and Regulations")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) {
+    return "Source Document";
+  }
+
+  return titleCaseWithAcronyms(normalized);
+}
+
+function deriveBankTitle(sourceLower: string): string {
+  if (sourceLower.includes("trend")) {
+    return "Fixed Deposit Rate Trends";
+  }
+
+  if (
+    sourceLower.includes("r&r") ||
+    sourceLower.includes("rule") ||
+    sourceLower.includes("regulation") ||
+    sourceLower.includes("terms")
+  ) {
+    return "Fixed Deposit Terms and Rules";
+  }
+
+  if (sourceLower.includes("data") || sourceLower.includes("rate")) {
+    return "Fixed Deposit Rate Sheet";
+  }
+
+  return "Fixed Deposit Terms";
+}
+
+function resolveSourcePresentation(params: {
+  source: string;
+  sourceOrg?: string;
+  bank?: string | null;
+}): SourcePresentation {
+  const normalized = normalizeSourceKey(params.source);
+  const override = SOURCE_OVERRIDES[normalized];
+  if (override) {
+    return override;
+  }
+
+  if (params.bank) {
+    const authority = BANK_AUTHORITY_MAP[params.bank] ?? params.bank;
+    return {
+      authority,
+      title: deriveBankTitle(normalized),
+    };
+  }
+
+  if (params.sourceOrg === "rbi") {
+    return { authority: "Reserve Bank of India", title: humanizeFilename(params.source) };
+  }
+
+  if (params.sourceOrg === "dicgc") {
+    return { authority: "DICGC", title: humanizeFilename(params.source) };
+  }
+
+  if (params.sourceOrg === "sebi") {
+    return { authority: "SEBI", title: humanizeFilename(params.source) };
+  }
+
+  return {
+    authority: "FD Advisor Knowledge Base",
+    title: humanizeFilename(params.source),
+  };
+}
+
+function normalizeSnippet(text: string, maxChars = 120): string {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (cleaned.length <= maxChars) {
+    return cleaned;
+  }
+
+  return `${cleaned.slice(0, Math.max(0, maxChars - 3)).trim()}...`;
+}
+
+function mapSimilarityToConfidence(similarity: number): "high" | "medium" | "low" {
+  if (similarity >= 0.72) return "high";
+  if (similarity >= 0.52) return "medium";
+  return "low";
+}
+
+function buildSourceCitationsFromVector(
+  response: RetrievalResponse,
+  maxSources = 2
+): SourceCitation[] {
+  const citations: SourceCitation[] = [];
+  const seen = new Set<string>();
+
+  for (const result of response.results) {
+    const source = result.metadata.source;
+    if (!source || seen.has(source)) {
+      continue;
+    }
+
+    seen.add(source);
+    const presentation = resolveSourcePresentation({
+      source,
+      sourceOrg: result.metadata.sourceOrg,
+      bank: result.metadata.bank,
+    });
+    citations.push({
+      source,
+      authority: presentation.authority,
+      title: presentation.title,
+      url: presentation.url,
+      topic: result.metadata.topic,
+      snippet: normalizeSnippet(result.content),
+      confidence: mapSimilarityToConfidence(result.similarity),
+    });
+
+    if (citations.length >= maxSources) {
+      break;
+    }
+  }
+
+  return citations;
+}
+
+function buildSourceCitationsFromMinimal(
+  chunks: KnowledgeChunk[],
+  maxSources = 2
+): SourceCitation[] {
+  const citations: SourceCitation[] = [];
+  const seen = new Set<string>();
+
+  for (const chunk of chunks) {
+    const source = chunk.metadata.source;
+    if (!source || seen.has(source)) {
+      continue;
+    }
+
+    seen.add(source);
+    const presentation = resolveSourcePresentation({ source });
+    citations.push({
+      source,
+      authority: presentation.authority,
+      title: presentation.title,
+      url: presentation.url,
+      topic: chunk.metadata.topic,
+      snippet: normalizeSnippet(chunk.content),
+      confidence: "medium",
+    });
+
+    if (citations.length >= maxSources) {
+      break;
+    }
+  }
+
+  return citations;
+}
+
 function getRecommendationReason(
   language: SupportedChatLanguage,
   rank: number
@@ -523,7 +971,8 @@ function buildRecommendationFallbackStructured(
   language: SupportedChatLanguage,
   options: FDOption[],
   amount?: number,
-  tenure?: number
+  tenure?: number,
+  sources?: SourceCitation[]
 ): StructuredResponse {
   const explanationMap: Record<SupportedChatLanguage, string> = {
     en: "Based on current approximate rates, these are suitable FD options for your request.",
@@ -608,12 +1057,15 @@ function buildRecommendationFallbackStructured(
       ? `${explanationMap[language]} (${tenure} ${tenureSuffixMap[language]}).`
       : explanationMap[language];
 
+  const normalizedSources = sources && sources.length > 0 ? sources : undefined;
+
   return {
     type: "recommendation",
     explanation,
     recommendations,
     points: [...pointsMap[language]],
     nextStep: nextStepMap[language],
+    sources: normalizedSources,
   };
 }
 
@@ -644,6 +1096,54 @@ function cleanStructured(parsed: Record<string, unknown>): StructuredResponse {
       })
     );
   }
+
+  if (parsed.sources && Array.isArray(parsed.sources)) {
+    parsed.sources = parsed.sources
+      .map((entry) => {
+        if (typeof entry === "string") {
+          const presentation = resolveSourcePresentation({ source: entry });
+          return {
+            source: entry,
+            authority: presentation.authority,
+            title: presentation.title,
+            url: presentation.url,
+          };
+        }
+
+        if (entry && typeof entry === "object") {
+          const record = entry as Record<string, unknown>;
+          const source = typeof record.source === "string" ? record.source : "";
+          const authority =
+            typeof record.authority === "string" ? record.authority : undefined;
+          const title = typeof record.title === "string" ? record.title : undefined;
+          const url = typeof record.url === "string" ? record.url : undefined;
+          const topic = typeof record.topic === "string" ? record.topic : undefined;
+          const snippet =
+            typeof record.snippet === "string" ? record.snippet : undefined;
+
+          if (!source && !authority && !title) {
+            return null;
+          }
+
+          if (source && (!authority || !title)) {
+            const presentation = resolveSourcePresentation({ source });
+            return {
+              source,
+              authority: authority ?? presentation.authority,
+              title: title ?? presentation.title,
+              url: url ?? presentation.url,
+              topic,
+              snippet,
+            };
+          }
+
+          return { source, authority, title, url, topic, snippet };
+        }
+
+        return null;
+      })
+      .filter(Boolean);
+  }
   // Remove x_groq metadata if present
   delete parsed.x_groq;
 
@@ -665,6 +1165,32 @@ function buildFallbackText(parsed: Record<string, unknown>): string {
   if (parsed.points && Array.isArray(parsed.points)) {
     parts.push("📊 Key Points:");
     (parsed.points as string[]).forEach((p) => parts.push(`• ${p}`));
+  }
+  if (parsed.sources && Array.isArray(parsed.sources)) {
+    const sources = parsed.sources as Array<
+      {
+        source?: string;
+        authority?: string;
+        title?: string;
+        topic?: string;
+        snippet?: string;
+      } | string
+    >;
+    if (sources.length > 0) {
+      parts.push("📚 Sources:");
+      sources.forEach((entry) => {
+        if (typeof entry === "string") {
+          parts.push(`• ${entry}`);
+          return;
+        }
+
+        const label = entry?.authority || entry?.source;
+        if (label) {
+          const suffix = entry.title ? ` — ${entry.title}` : "";
+          parts.push(`• ${label}${suffix}`);
+        }
+      });
+    }
   }
   if (parsed.nextStep) parts.push(`➡️ ${parsed.nextStep}`);
   return parts.join("\n") || "Response received.";
@@ -776,6 +1302,321 @@ function parseStructuredResponse(
   return { structured: null, rawText: text };
 }
 
+function trimToSentences(text: string, maxSentences: number): string {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+  const protectedDecimals = normalized.replace(
+    /(\d+)\.(\d+)/g,
+    (_match, whole: string, frac: string) => `${whole}__DECIMAL__${frac}`
+  );
+  const parts = protectedDecimals.match(/[^.!?]+[.!?]?/g) ?? [protectedDecimals];
+  return parts
+    .slice(0, maxSentences)
+    .join(" ")
+    .replace(/__DECIMAL__/g, ".")
+    .trim();
+}
+
+function mentionsRateOrYield(text: string): boolean {
+  const lower = text.toLowerCase();
+  return (
+    /\b(rate|rates|interest|yield|apy|tenure)\b/.test(lower) ||
+    /[%\d]\s*%/.test(text) ||
+    /\b(fd rate|fd rates)\b/.test(lower)
+  );
+}
+
+function ensureFreshnessLabel(
+  value: string,
+  language: SupportedChatLanguage,
+  dateLabel: string
+): string {
+  if (!value.trim()) return value;
+  const hasFreshness = /\bas of\b|indexed data|subject to revision|अनुसार|डेटा/.test(
+    value.toLowerCase()
+  );
+  if (hasFreshness) return value;
+
+  const suffixMap: Record<SupportedChatLanguage, string> = {
+    en: ` (as of ${dateLabel}, latest indexed data, subject to revision)`,
+    hi: ` ( ${dateLabel} तक उपलब्ध डेटा के अनुसार, बदलाव संभव)`,
+    hinglish: ` (as of ${dateLabel}, latest indexed data, revision possible)`,
+    mr: ` (${dateLabel} पर्यंत उपलब्ध डेटानुसार, बदल शक्य)`,
+    gu: ` (${dateLabel} સુધી ઉપલબ્ધ ડેટા મુજબ, ફેરફાર શક્ય)`,
+    ta: ` (${dateLabel} நிலவரப்படி உள்ள தரவு, மாற்றம் ஏற்படலாம்)`,
+    bho: ` (${dateLabel} तक उपलब्ध डेटा के हिसाब से, बदलाव संभव बा)`,
+  };
+
+  return `${value.trim()}${suffixMap[language]}`;
+}
+
+function buildSmartNextStep(
+  message: string,
+  intent: ExtractedIntent,
+  language: SupportedChatLanguage
+): string | null {
+  const lower = message.toLowerCase();
+  const hasAmount = Boolean(intent.amount && intent.amount > 0);
+  const hasTenure = Boolean(intent.tenure && intent.tenure > 0);
+
+  if (/\b(tax|tds|80c|pan|15g|15h)\b/.test(lower)) {
+    const map: Record<SupportedChatLanguage, string> = {
+      en: "Want a quick TDS check? Share your yearly FD interest and senior-citizen status.",
+      hi: "TDS की जल्दी जांच करनी है? अपना सालाना FD ब्याज और senior citizen status बताएं।",
+      hinglish: "Quick TDS check chahiye? Apna yearly FD interest aur senior citizen status share karo.",
+      mr: "झटपट TDS तपासणी हवी? वार्षिक FD व्याज आणि senior citizen status सांगा.",
+      gu: "ઝડપી TDS check જોઈએ? તમારું yearly FD interest અને senior citizen status શેર કરો.",
+      ta: "விரைவான TDS check வேண்டுமா? உங்கள் yearly FD interest மற்றும் senior citizen status சொல்லுங்கள்.",
+      bho: "जल्दी TDS check चाहीं? सालाना FD ब्याज आ senior citizen status बताईं।",
+    };
+    return map[language];
+  }
+
+  if (/\b(safe|safety|insured|insurance|dicgc)\b/.test(lower)) {
+    const map: Record<SupportedChatLanguage, string> = {
+      en: "If you share bank name + total deposit amount, I can check practical DICGC safety coverage.",
+      hi: "बैंक का नाम और कुल जमा राशि बताएं, मैं DICGC कवरेज practically समझा दूंगा।",
+      hinglish: "Bank name + total deposit amount share karo, main practical DICGC coverage check kar dunga.",
+      mr: "बँकेचे नाव आणि एकूण ठेव रक्कम द्या, मी practical DICGC coverage समजावतो.",
+      gu: "બેંકનું નામ અને કુલ ડિપોઝિટ એમાઉન્ટ આપો, હું practical DICGC coverage સમજાવીશ.",
+      ta: "வங்கி பெயர் + மொத்த வைப்பு தொகை சொன்னால், practical DICGC coverage check செய்து சொல்கிறேன்.",
+      bho: "बैंक के नाम आ कुल जमा रकम बताईं, practical DICGC coverage समझा देब।",
+    };
+    return map[language];
+  }
+
+  if (/\b(senior|senior citizen|वरिष्ठ|बुजुर्ग)\b/.test(lower)) {
+    const map: Record<SupportedChatLanguage, string> = {
+      en: "Want senior-citizen options? I can compare rates and maturity for Rs 1 lakh.",
+      hi: "Senior citizen options चाहिए? मैं Rs 1 lakh पर rates और maturity compare कर दूंगा।",
+      hinglish: "Senior citizen options chahiye? Main Rs 1 lakh par rates aur maturity compare kar dunga.",
+      mr: "Senior citizen पर्याय पाहिजेत? Rs 1 lakh साठी rates आणि maturity compare करतो.",
+      gu: "Senior citizen options જોઈએ? Rs 1 lakh માટે rates અને maturity compare કરી દઈશ.",
+      ta: "Senior citizen options வேண்டுமா? Rs 1 lakhக்கு rates மற்றும் maturity compare செய்கிறேன்.",
+      bho: "Senior citizen option चाहीं? Rs 1 lakh पर rates आ maturity compare कर देब।",
+    };
+    return map[language];
+  }
+
+  if (intent.intent === "RECOMMEND_FD" && hasAmount && hasTenure) {
+    const map: Record<SupportedChatLanguage, string> = {
+      en: "Pick one option and I can compare its maturity vs SBI/HDFC side-by-side.",
+      hi: "एक विकल्प चुनें, मैं उसका maturity SBI/HDFC के साथ side-by-side compare कर दूंगा।",
+      hinglish: "Ek option choose karo, main uska maturity SBI/HDFC ke saath side-by-side compare kar dunga.",
+      mr: "एक पर्याय निवडा, मी त्याचा maturity SBI/HDFC सोबत side-by-side compare करतो.",
+      gu: "એક વિકલ્પ પસંદ કરો, હું તેની maturity SBI/HDFC સાથે side-by-side compare કરી દઈશ.",
+      ta: "ஒரு option தேர்வு செய்யுங்கள்; அதன் maturity-ஐ SBI/HDFC உடன் side-by-side compare செய்கிறேன்.",
+      bho: "एक विकल्प चुन लीं, ओकर maturity SBI/HDFC से side-by-side compare कर देब।",
+    };
+    return map[language];
+  }
+
+  if (!hasAmount) {
+    const map: Record<SupportedChatLanguage, string> = {
+      en: "Share your investment amount (for example ₹50,000), and I will estimate maturity quickly.",
+      hi: "अपनी निवेश राशि बताएं (जैसे ₹50,000), मैं तुरंत maturity estimate कर दूंगा।",
+      hinglish: "Investment amount share karo (jaise ₹50,000), main quick maturity estimate kar dunga.",
+      mr: "निवेश रक्कम सांगा (उदा. ₹50,000), मी लगेच maturity estimate देतो.",
+      gu: "ઇન્વેસ્ટમેન્ટ amount આપો (જેમ કે ₹50,000), હું તરત maturity estimate આપીશ.",
+      ta: "முதலீட்டு தொகை சொல்லுங்கள் (உதா. ₹50,000), உடனே maturity estimate தருகிறேன்.",
+      bho: "निवेश रकम बताईं (जइसे ₹50,000), तुरंते maturity estimate दे देब।",
+    };
+    return map[language];
+  }
+
+  if (!hasTenure) {
+    const map: Record<SupportedChatLanguage, string> = {
+      en: "Tell me your tenure target (6 months, 1 year, or longer) and I will shortlist better options.",
+      hi: "अपनी अवधि बताएं (6 महीने, 1 साल, या उससे ज्यादा), मैं बेहतर विकल्प shortlist कर दूंगा।",
+      hinglish: "Tenure target batao (6 months, 1 year, ya longer), main better options shortlist kar dunga.",
+      mr: "कालावधी सांगा (6 महिने, 1 वर्ष, किंवा जास्त), मी चांगले पर्याय shortlist करतो.",
+      gu: "ટેન્યોર જણાવો (6 months, 1 year, અથવા વધુ), હું better options shortlist કરી દઈશ.",
+      ta: "tenure (6 months, 1 year அல்லது அதிகம்) சொன்னால், நல்ல options shortlist செய்கிறேன்.",
+      bho: "अवधि बताईं (6 महीना, 1 साल, या जादे), हम बेहतर विकल्प shortlist कर देब।",
+    };
+    return map[language];
+  }
+
+  return null;
+}
+
+function polishStructuredResponse(params: {
+  structured: StructuredResponse;
+  mode: ResponseMode;
+  message: string;
+  intent: ExtractedIntent;
+  language: SupportedChatLanguage;
+  dateLabel: string;
+}): StructuredResponse {
+  const { structured, mode, message, intent, language, dateLabel } = params;
+  const polished: StructuredResponse = { ...structured };
+  const stripFieldPrefix = (value: string): string =>
+    value
+      .replace(
+        /^\s*(explanation|recommendation|points?|next[\s_-]*step|summary)\s*[:\-]?\s*/i,
+        ""
+      )
+      .trim();
+
+  if (polished.explanation) {
+    polished.explanation = trimToSentences(
+      stripFieldPrefix(polished.explanation),
+      mode === "simple" ? 2 : 4
+    );
+  }
+
+  if (polished.example) {
+    polished.example = trimToSentences(
+      stripFieldPrefix(polished.example),
+      mode === "simple" ? 1 : 2
+    );
+  }
+
+  if (Array.isArray(polished.points)) {
+    const pointLimit = mode === "simple" ? 2 : 4;
+    const deduped: string[] = [];
+    for (const point of polished.points) {
+      const cleaned = trimToSentences(stripFieldPrefix(point.replace(/\s+/g, " ").trim()), 1);
+      if (!cleaned) continue;
+      const alreadyCovered = deduped.some((existing) => {
+        const a = existing.toLowerCase();
+        const b = cleaned.toLowerCase();
+        return a === b || a.includes(b) || b.includes(a);
+      });
+      if (!alreadyCovered) {
+        deduped.push(cleaned);
+      }
+      if (deduped.length >= pointLimit) break;
+    }
+    polished.points = deduped;
+  }
+
+  if (polished.type === "recommendation" && polished.recommendations?.length) {
+    const recommendations = polished.recommendations;
+    const hasSmallFinance = recommendations.some(
+      (item) => item.category === "small-finance"
+    );
+    const highestRate = [...recommendations].sort((a, b) => b.rate - a.rate)[0];
+    const safest = recommendations.find((item) => item.category === "public") ?? recommendations[0];
+    const seniorFriendly =
+      recommendations.find((item) => /senior/i.test(item.reason ?? "")) ?? highestRate;
+
+    const comparisonPoints: string[] = [];
+    comparisonPoints.push(`Best for safety: ${safest.bank}.`);
+    comparisonPoints.push(`Best for high return: ${highestRate.bank} at ${highestRate.rate}%.`);
+    if (seniorFriendly) {
+      comparisonPoints.push(`Best for senior citizens: ${seniorFriendly.bank}.`);
+    }
+    if (hasSmallFinance) {
+      comparisonPoints.push(
+        "Safety note: DICGC cover applies up to Rs 5 lakh per depositor (as per applicable rules)."
+      );
+    }
+
+    const pointLimit = mode === "simple" ? 2 : 4;
+    polished.points = comparisonPoints.slice(0, pointLimit);
+  }
+
+  const shouldAddFreshness =
+    mentionsRateOrYield(message) ||
+    mentionsRateOrYield(polished.explanation ?? "") ||
+    (polished.points ?? []).some((point) => mentionsRateOrYield(point));
+
+  if (shouldAddFreshness && polished.explanation) {
+    polished.explanation = ensureFreshnessLabel(
+      polished.explanation,
+      language,
+      dateLabel
+    );
+  }
+
+  const smartNextStep = buildSmartNextStep(message, intent, language);
+  if (smartNextStep) {
+    polished.nextStep = smartNextStep;
+  } else if (polished.nextStep) {
+    polished.nextStep = trimToSentences(polished.nextStep, 1);
+  }
+
+  return polished;
+}
+
+function buildStructuredFromRawFallback(params: {
+  rawText: string;
+  mode: ResponseMode;
+  message: string;
+  intent: ExtractedIntent;
+  language: SupportedChatLanguage;
+  dateLabel: string;
+  knowledgeSources: SourceCitation[];
+}): StructuredResponse {
+  const {
+    rawText,
+    mode,
+    message,
+    intent,
+    language,
+    dateLabel,
+    knowledgeSources,
+  } = params;
+
+  const compactRaw = rawText.replace(/\s+/g, " ").trim();
+  const stripFieldPrefix = (value: string): string =>
+    value
+      .replace(
+        /^\s*(explanation|recommendation|points?|next[\s_-]*step|summary)\s*[:\-]?\s*/i,
+        ""
+      )
+      .trim();
+  const sentenceMatches = compactRaw.match(/[^.!?]+[.!?]?/g) ?? [];
+  const explanationBase =
+    stripFieldPrefix(sentenceMatches.slice(0, mode === "simple" ? 1 : 2).join(" ").trim()) ||
+    compactRaw ||
+    "I can help with FD details.";
+
+  const explanation = mentionsRateOrYield(message)
+    ? ensureFreshnessLabel(explanationBase, language, dateLabel)
+    : explanationBase;
+
+  const cleanedLinePoints = rawText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(
+      (line) =>
+        line.length > 20 &&
+        !/^sources?$/i.test(line) &&
+        !/^explanation$/i.test(line) &&
+        !/^example$/i.test(line) &&
+        !/^recommendation$/i.test(line)
+    );
+
+  const uniquePoints: string[] = [];
+  for (const line of cleanedLinePoints) {
+    const normalized = stripFieldPrefix(line.replace(/^[•\-]\s*/, "").trim());
+    if (!normalized) continue;
+    if (uniquePoints.some((item) => item.toLowerCase() === normalized.toLowerCase())) {
+      continue;
+    }
+    uniquePoints.push(trimToSentences(normalized, 1));
+  }
+
+  const pointsLimit = mode === "simple" ? 2 : 3;
+  const points = uniquePoints.slice(0, pointsLimit);
+
+  const nextStep =
+    buildSmartNextStep(message, intent, language) ||
+    (mode === "simple"
+      ? "Share amount + tenure for a quick FD estimate."
+      : "Share your amount and tenure, and I will give a bank-wise FD comparison.");
+
+  return {
+    type: "explanation",
+    explanation,
+    points: points.length > 0 ? points : undefined,
+    nextStep,
+    sources: knowledgeSources.length > 0 ? knowledgeSources : [],
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -831,29 +1672,57 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const retrievalQuery = await translateToEnglishForRetrieval(
-      trimmedMessage,
-      messageLanguage
-    );
-
     let knowledgeSection = "";
-    try {
-      const knowledgeContext = await retrieveKnowledgeContext(trimmedMessage, {
-        preferredType: getPreferredKnowledgeType(intent, retrievalQuery),
-        retrievalQuery,
-        limit: 3,
-      });
+    let knowledgeSources: SourceCitation[] = [];
 
-      knowledgeSection = buildKnowledgePromptSection(knowledgeContext);
-    } catch (error) {
-      console.error("[retrieveKnowledgeContext] Error:", error);
-      knowledgeSection =
-        "━━━ RETRIEVED FD KNOWLEDGE CONTEXT (MINIMAL RAG) ━━━\n" +
-        "Knowledge retrieval failed for this turn. Give cautious guidance and avoid making up exact factual values.";
+    if (canUseVectorRag()) {
+      try {
+        const vectorResponse = await retrieveContext(trimmedMessage, {
+          topK: 4,
+          similarityThreshold: 0.35,
+        });
+
+        knowledgeSection = buildVectorKnowledgePromptSection(vectorResponse);
+        knowledgeSources = buildSourceCitationsFromVector(vectorResponse);
+      } catch (error) {
+        console.error("[vectorRag] Error:", error);
+      }
+    }
+
+    if (!knowledgeSection) {
+      const retrievalQuery = await translateToEnglishForRetrieval(
+        trimmedMessage,
+        messageLanguage
+      );
+
+      try {
+        const knowledgeContext = await retrieveKnowledgeContext(trimmedMessage, {
+          preferredType: getPreferredKnowledgeType(intent, retrievalQuery),
+          retrievalQuery,
+          limit: 3,
+        });
+
+        knowledgeSection = buildKnowledgePromptSection(knowledgeContext);
+        knowledgeSources = buildSourceCitationsFromMinimal(knowledgeContext.chunks);
+      } catch (error) {
+        console.error("[retrieveKnowledgeContext] Error:", error);
+        knowledgeSection =
+          "━━━ RETRIEVED FD KNOWLEDGE CONTEXT (MINIMAL RAG) ━━━\n" +
+          "Knowledge retrieval failed for this turn. Give cautious guidance and avoid making up exact factual values.";
+        knowledgeSources = [];
+      }
     }
 
     let systemContent = SYSTEM_PROMPT;
     systemContent += `\n\n${knowledgeSection}`;
+
+    const dateLabel = new Intl.DateTimeFormat("en-IN", {
+      month: "short",
+      year: "numeric",
+    }).format(new Date());
+    systemContent +=
+      `\n\n━━━ DATA FRESHNESS CONTEXT ━━━\n` +
+      `Today: ${dateLabel}. If you mention rates or thresholds, say "as of ${dateLabel} (latest indexed data, subject to revision)".`;
 
     const langInstruction = getLanguageOverrideInstruction(responseLanguage);
     systemContent += `\n\n━━━ LANGUAGE OVERRIDE (CURRENT USER MESSAGE) ━━━\n${langInstruction} Follow the language of the CURRENT user message only. Ignore UI language selection for this rule.`;
@@ -926,35 +1795,86 @@ export async function POST(request: NextRequest) {
             responseLanguage,
             recommendationOptions,
             intent.amount ?? undefined,
-            intent.tenure ?? undefined
+            intent.tenure ?? undefined,
+            knowledgeSources
           )
         : null;
 
-    const finalStructured = structured || fallbackRecommendationStructured || undefined;
-    let finalReply = finalStructured?.explanation || rawText;
-    let finalOutputStructured = finalStructured;
+    const rawFallbackStructured =
+      !structured && !fallbackRecommendationStructured
+        ? buildStructuredFromRawFallback({
+            rawText,
+            mode: normalizedResponseMode,
+            message: trimmedMessage,
+            intent,
+            language: responseLanguage,
+            dateLabel,
+            knowledgeSources,
+          })
+        : null;
 
-    if (responseLanguage === "hi") {
+    const finalStructured =
+      structured || fallbackRecommendationStructured || rawFallbackStructured || undefined;
+    let finalOutputStructured = finalStructured
+      ? polishStructuredResponse({
+          structured: finalStructured,
+          mode: normalizedResponseMode,
+          message: trimmedMessage,
+          intent,
+          language: responseLanguage,
+          dateLabel,
+        })
+      : undefined;
+    let finalReply = finalOutputStructured?.explanation || rawText;
+
+    if (
+      responseLanguage === "hi" ||
+      responseLanguage === "mr" ||
+      responseLanguage === "gu" ||
+      responseLanguage === "ta" ||
+      responseLanguage === "bho"
+    ) {
       const structuredText = finalOutputStructured
         ? collectStringValues(finalOutputStructured).join(" ")
         : finalReply;
 
-      if (shouldNormalizeHindiOutput(structuredText)) {
+      const needsNormalization =
+        shouldForceRewriteLanguage(responseLanguage) ||
+        (responseLanguage === "hi"
+          ? shouldNormalizeHindiOutput(structuredText)
+          : shouldNormalizeForLanguage(structuredText, responseLanguage));
+
+      if (needsNormalization) {
         if (finalOutputStructured) {
-          const rewrittenStructured = await rewriteStructuredToHindi(
-            finalOutputStructured
+          const rewrittenStructured = await rewriteStructuredToLanguage(
+            finalOutputStructured,
+            responseLanguage
           );
           if (rewrittenStructured) {
             finalOutputStructured = rewrittenStructured;
             finalReply = rewrittenStructured.explanation || finalReply;
           }
         } else {
-          const rewrittenText = await rewriteTextToHindi(finalReply);
+          const rewrittenText = await rewriteTextToLanguage(
+            finalReply,
+            responseLanguage
+          );
           if (rewrittenText) {
             finalReply = rewrittenText;
           }
         }
       }
+    }
+
+    if (
+      finalOutputStructured &&
+      finalOutputStructured.type !== "booking_flow" &&
+      knowledgeSources.length > 0
+    ) {
+      finalOutputStructured = {
+        ...finalOutputStructured,
+        sources: knowledgeSources,
+      };
     }
 
     return NextResponse.json({

@@ -36,3 +36,10 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.ai-code
+
+# RAG generated artifacts
+lib/rag/chunks.json
+lib/rag/embeddings-cache.json
+banks-info
+
