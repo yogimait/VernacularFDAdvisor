@@ -116,9 +116,12 @@ export function InstallAppButton({ language }: InstallAppButtonProps) {
       className="h-8 shrink-0 gap-1.5 px-2 text-[0.6875rem] sm:px-3"
       onClick={handleInstallClick}
       disabled={isInstalling}
+      aria-label={isInstalling ? text.installing : text.installApp}
     >
       <RiDownloadLine className="size-3.5" />
-      {isInstalling ? text.installing : text.installApp}
+      <span className="hidden sm:inline">
+        {isInstalling ? text.installing : text.installApp}
+      </span>
     </Button>
   );
 }

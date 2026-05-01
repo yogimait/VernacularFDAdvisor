@@ -142,6 +142,7 @@ const NAV_ITEMS: SidebarItem[] = [
 ];
 
 const NAV_GROUP_ORDER: Array<SidebarItem["group"]> = ["learn", "action", "tools"];
+const MOBILE_HIDDEN_ROUTES = new Set(["/", "/chat", "/profile"]);
 
 export function Sidebar({
   collapsed,
@@ -291,7 +292,14 @@ export function Sidebar({
 
       <nav className="space-y-3 px-2 py-3">
         {NAV_GROUP_ORDER.map((group) => {
-          const items = NAV_ITEMS.filter((item) => item.group === group);
+          const items = NAV_ITEMS.filter(
+            (item) =>
+              item.group === group && (!mobile || !MOBILE_HIDDEN_ROUTES.has(item.route))
+          );
+
+          if (items.length === 0) {
+            return null;
+          }
 
           return (
             <div key={`nav-group-${group}`} className="space-y-1">

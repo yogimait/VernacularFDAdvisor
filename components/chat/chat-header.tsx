@@ -6,14 +6,12 @@ import {
   RiSunLine,
   RiMoonClearLine,
   RiGlobalLine,
-  RiMenuLine,
 } from "@remixicon/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import type { Language } from "@/hooks/use-language";
 import { useOnlineStatus } from "@/hooks/use-online-status";
-import { dispatchOpenMobileSidebar } from "@/lib/chat-events";
 import { LANGUAGE_SEQUENCE, LANGUAGE_SHORT_LABELS, pickLocalized } from "@/lib/i18n";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 
@@ -100,16 +98,7 @@ export function ChatHeader({ language, onLanguageChange }: ChatHeaderProps) {
   };
 
   return (
-    <header className="flex items-center gap-3 border-b border-border bg-card/80 px-4 py-3 backdrop-blur-md sm:px-6">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="shrink-0 md:hidden"
-        aria-label={text.openSidebar}
-        onClick={dispatchOpenMobileSidebar}
-      >
-        <RiMenuLine className="size-4" />
-      </Button>
+    <header className="sticky top-0 z-30 flex w-full items-center gap-2 border-b border-border bg-card/90 px-4 py-2.5 backdrop-blur-md sm:px-6 md:static md:z-auto md:gap-3 md:py-3">
 
       {/* Logo / Avatar */}
       <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">

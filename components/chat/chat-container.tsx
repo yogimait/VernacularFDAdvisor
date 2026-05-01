@@ -256,6 +256,7 @@ export function ChatContainer() {
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [responseMode, setResponseMode] = useState<"simple" | "detailed">("simple");
   const [activeMode, setActiveMode] = useState<ChatMode>("ask");
+  const [showModeActions, setShowModeActions] = useState(true);
   const [bookingState, setBookingState] = useState<FDBookingState | null>(() =>
     readStoredBookingState()
   );
@@ -272,6 +273,10 @@ export function ChatContainer() {
         open: "Open FD",
         compare: "Compare",
         calculator: "Calculator",
+      },
+      modeToggle: {
+        show: "Show actions",
+        hide: "Hide actions",
       },
       openPrompt: "I want to open an FD",
       comparePrompt: "Compare FD options for my amount and tenure",
@@ -291,6 +296,10 @@ export function ChatContainer() {
         compare: "Compare",
         calculator: "Calculator",
       },
+      modeToggle: {
+        show: "Show actions",
+        hide: "Hide actions",
+      },
       openPrompt: "I want to open an FD",
       comparePrompt: "Compare FD options for my amount and tenure",
       continueFlow: "Let us continue your FD booking flow.",
@@ -308,6 +317,10 @@ export function ChatContainer() {
         open: "FD खोलें",
         compare: "तुलना करें",
         calculator: "कैलकुलेटर",
+      },
+      modeToggle: {
+        show: "एक्शन दिखाएं",
+        hide: "एक्शन छुपाएं",
       },
       openPrompt: "मुझे FD खोलनी है",
       comparePrompt: "मेरी राशि और अवधि के लिए FD विकल्पों की तुलना करो",
@@ -327,6 +340,10 @@ export function ChatContainer() {
         compare: "Compare",
         calculator: "Calculator",
       },
+      modeToggle: {
+        show: "Actions dikhao",
+        hide: "Actions chhupao",
+      },
       openPrompt: "Mujhe FD open karni hai",
       comparePrompt: "Mere amount aur tenure ke liye FD options compare karo",
       continueFlow: "Chaliye aapka FD booking flow continue karte hain.",
@@ -344,6 +361,10 @@ export function ChatContainer() {
         open: "FD उघडा",
         compare: "तुलना",
         calculator: "कॅल्क्युलेटर",
+      },
+      modeToggle: {
+        show: "अॅक्शन दाखवा",
+        hide: "अॅक्शन लपवा",
       },
       openPrompt: "मला FD उघडायची आहे",
       comparePrompt: "माझ्या रकमे आणि कालावधीसाठी FD पर्यायांची तुलना करा",
@@ -363,6 +384,10 @@ export function ChatContainer() {
         compare: "તુલના",
         calculator: "કેલ્ક્યુલેટર",
       },
+      modeToggle: {
+        show: "એક્શન બતાવો",
+        hide: "એક્શન છુપાવો",
+      },
       openPrompt: "મને FD ખોલવી છે",
       comparePrompt: "મારી રકમ અને સમયગાળા માટે FD વિકલ્પોની તુલના કરો",
       continueFlow: "ચાલો, તમારો FD બુકિંગ ફ્લો આગળ વધારીએ.",
@@ -381,6 +406,10 @@ export function ChatContainer() {
         compare: "ஒப்பிடு",
         calculator: "கணிப்பான்",
       },
+      modeToggle: {
+        show: "செயல்கள் காண்பிக்க",
+        hide: "செயல்கள் மறைக்க",
+      },
       openPrompt: "எனக்கு FD திறக்க வேண்டும்",
       comparePrompt: "என் தொகை மற்றும் காலத்திற்கு FD விருப்பங்களை ஒப்பிடுங்கள்",
       continueFlow: "உங்கள் FD பதிவு செயல்முறையை தொடரலாம்.",
@@ -398,6 +427,10 @@ export function ChatContainer() {
         open: "FD खोलीं",
         compare: "तुलना",
         calculator: "कैलकुलेटर",
+      },
+      modeToggle: {
+        show: "एक्शन देखाईं",
+        hide: "एक्शन छुपाईं",
       },
       openPrompt: "हमरा FD खोलल बा",
       comparePrompt: "हमार रकम आ अवधि खातिर FD विकल्प के तुलना करीं",
@@ -931,7 +964,24 @@ export function ChatContainer() {
         </div>
       ) : null}
       <div className="shrink-0 border-b border-border bg-card/40 px-4 py-2 sm:px-6">
-        <div className="flex items-center gap-1.5 overflow-x-auto" role="tablist" aria-label="Chat mode selection">
+        <div className="flex items-center justify-end md:hidden">
+          <button
+            type="button"
+            onClick={() => setShowModeActions((prev) => !prev)}
+            className="text-[0.6875rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {showModeActions ? text.modeToggle.hide : text.modeToggle.show}
+          </button>
+        </div>
+        <div
+          className={`${
+            showModeActions
+              ? "mt-2 grid grid-cols-2 gap-2"
+              : "hidden"
+          } md:mt-0 md:flex md:items-center md:gap-1.5 md:overflow-x-auto`}
+          role="tablist"
+          aria-label="Chat mode selection"
+        >
           {CHAT_MODES.map((mode) => (
             <button
               key={mode.key}
@@ -939,7 +989,7 @@ export function ChatContainer() {
               onClick={() => handleModeSelect(mode.key)}
               role="tab"
               aria-selected={activeMode === mode.key}
-              className={`rounded-full border px-3 py-1 text-[0.6875rem] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
+              className={`w-full rounded-full border px-3 py-1.5 text-center text-[0.6875rem] font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 md:w-auto md:px-3 md:py-1 ${
                 activeMode === mode.key
                   ? "border-primary/70 bg-primary text-primary-foreground"
                   : "border-border bg-background/70 text-foreground/90 hover:border-primary/30 hover:text-foreground"

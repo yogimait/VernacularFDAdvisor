@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import {
   RiCheckboxBlankCircleLine,
@@ -23,6 +23,12 @@ import { Progress } from "@/components/ui/progress";
 import { useLanguage } from "@/hooks/use-language";
 import { useSessionStorageValue } from "@/hooks/use-session-storage-value";
 import { LANGUAGE_LABELS, LANGUAGE_SEQUENCE, pickLocalized } from "@/lib/i18n";
+import {
+  applyFontScale,
+  normalizeFontScale,
+  FONT_SCALE_STORAGE_KEY,
+  type FontScaleOption,
+} from "@/lib/font-scale";
 import {
   BOOKING_STATE_KEY,
   LAST_CHAT_ACTIVITY_KEY,
@@ -51,6 +57,13 @@ export function ProfileSettingsPage() {
       language: "Language",
       theme: "Theme",
       toggleTheme: "Toggle Theme",
+      fontSize: "Font size",
+      fontSizeOptions: {
+        small: "Small",
+        default: "Default",
+        large: "Large",
+        extraLarge: "Extra large",
+      },
       fdHistory: "FD History (Preview)",
       activeBooking: "Active booking",
       bankNotSelected: "Bank not selected",
@@ -82,6 +95,13 @@ export function ProfileSettingsPage() {
       language: "भाषा",
       theme: "थीम",
       toggleTheme: "थीम बदलें",
+      fontSize: "फॉन्ट साइज़",
+      fontSizeOptions: {
+        small: "छोटा",
+        default: "डिफ़ॉल्ट",
+        large: "बड़ा",
+        extraLarge: "बहुत बड़ा",
+      },
       fdHistory: "FD इतिहास (प्रीव्यू)",
       activeBooking: "सक्रिय बुकिंग",
       bankNotSelected: "बैंक चयनित नहीं",
@@ -113,6 +133,13 @@ export function ProfileSettingsPage() {
       language: "Language",
       theme: "Theme",
       toggleTheme: "Theme Toggle",
+      fontSize: "Font size",
+      fontSizeOptions: {
+        small: "Small",
+        default: "Default",
+        large: "Large",
+        extraLarge: "Extra large",
+      },
       fdHistory: "FD History (Preview)",
       activeBooking: "Active booking",
       bankNotSelected: "Bank select nahi",
@@ -144,6 +171,13 @@ export function ProfileSettingsPage() {
       language: "भाषा",
       theme: "थीम",
       toggleTheme: "थीम बदला",
+      fontSize: "फॉन्ट आकार",
+      fontSizeOptions: {
+        small: "लहान",
+        default: "डीफॉल्ट",
+        large: "मोठा",
+        extraLarge: "खूप मोठा",
+      },
       fdHistory: "FD इतिहास (पूर्वावलोकन)",
       activeBooking: "सक्रिय बुकिंग",
       bankNotSelected: "बँक निवडलेली नाही",
@@ -175,6 +209,13 @@ export function ProfileSettingsPage() {
       language: "ભાષા",
       theme: "થીમ",
       toggleTheme: "થીમ બદલો",
+      fontSize: "ફૉન્ટ કદ",
+      fontSizeOptions: {
+        small: "નાનું",
+        default: "ડિફોલ્ટ",
+        large: "મોટું",
+        extraLarge: "ખૂબ મોટું",
+      },
       fdHistory: "FD ઇતિહાસ (પૂર્વદર્શન)",
       activeBooking: "સક્રિય બુકિંગ",
       bankNotSelected: "બેંક પસંદ નથી",
@@ -206,6 +247,13 @@ export function ProfileSettingsPage() {
       language: "மொழி",
       theme: "தீம்",
       toggleTheme: "தீமை மாற்று",
+      fontSize: "எழுத்துரு அளவு",
+      fontSizeOptions: {
+        small: "சிறியது",
+        default: "இயல்புநிலை",
+        large: "பெரியது",
+        extraLarge: "மிக பெரியது",
+      },
       fdHistory: "FD வரலாறு (முன்னோட்டம்)",
       activeBooking: "செயலில் உள்ள பதிவு",
       bankNotSelected: "வங்கி தேர்ந்தெடுக்கப்படவில்லை",
@@ -237,6 +285,13 @@ export function ProfileSettingsPage() {
       language: "भाषा",
       theme: "थीम",
       toggleTheme: "थीम बदलीं",
+      fontSize: "फॉन्ट साइज",
+      fontSizeOptions: {
+        small: "छोट",
+        default: "डिफॉल्ट",
+        large: "बड़",
+        extraLarge: "बहुते बड़",
+      },
       fdHistory: "FD इतिहास (प्रीव्यू)",
       activeBooking: "सक्रिय बुकिंग",
       bankNotSelected: "बैंक चयन ना भइल",
@@ -262,12 +317,24 @@ export function ProfileSettingsPage() {
   const [name, setName] = useState("Guest User");
   const [email, setEmail] = useState("guest@fdadvisor.app");
   const [status, setStatus] = useState("");
+  const [fontScale, setFontScale] = useState<FontScaleOption>("default");
   const [readiness, setReadiness] = useState({
     goalDefined: false,
     emergencyFund: false,
     kycReady: false,
     nomineeAdded: false,
   });
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const stored = window.localStorage.getItem(FONT_SCALE_STORAGE_KEY);
+    const normalized = normalizeFontScale(stored);
+    setFontScale(normalized);
+    applyFontScale(normalized);
+  }, []);
 
   const readinessItems = [
     { key: "goalDefined", label: text.goalDefined },
@@ -276,10 +343,31 @@ export function ProfileSettingsPage() {
     { key: "nomineeAdded", label: text.nomineeAdded },
   ] as const;
 
+  const fontSizeOptions: Array<{ value: FontScaleOption; label: string }> = [
+    { value: "sm", label: text.fontSizeOptions.small },
+    { value: "default", label: text.fontSizeOptions.default },
+    { value: "lg", label: text.fontSizeOptions.large },
+    { value: "xl", label: text.fontSizeOptions.extraLarge },
+  ];
+
   const completedReadiness = readinessItems.filter((item) => readiness[item.key]).length;
   const readinessPercent = Math.round(
     (completedReadiness / readinessItems.length) * 100
   );
+
+  const handleFontScaleChange = (next: FontScaleOption) => {
+    setFontScale(next);
+
+    if (typeof window !== "undefined") {
+      if (next === "default") {
+        window.localStorage.removeItem(FONT_SCALE_STORAGE_KEY);
+      } else {
+        window.localStorage.setItem(FONT_SCALE_STORAGE_KEY, next);
+      }
+    }
+
+    applyFontScale(next);
+  };
 
   const bookingState = useSessionStorageValue<FDBookingState | null>(
     BOOKING_STATE_KEY,
@@ -356,7 +444,7 @@ export function ProfileSettingsPage() {
                 <button
                   key={option}
                   onClick={() => setLanguage(option)}
-                  className={`rounded-full border px-2.5 py-0.5 text-[0.6875rem] ${
+                  className={`rounded-lg border px-2.5 py-0.5 text-[0.6875rem] ${
                     language === option
                       ? "border-primary/40 bg-primary/10 text-primary"
                       : "border-border bg-background/70 text-muted-foreground"
@@ -376,6 +464,23 @@ export function ProfileSettingsPage() {
               >
                 {text.toggleTheme} ({resolvedTheme ?? "system"})
               </Button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-muted-foreground">{text.fontSize}:</span>
+              {fontSizeOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => handleFontScaleChange(option.value)}
+                  className={`rounded-lg border px-2.5 py-0.5 text-[0.6875rem] ${
+                    fontScale === option.value
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "border-border bg-background/70 text-muted-foreground"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
           </CardContent>
         </Card>
