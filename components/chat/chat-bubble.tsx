@@ -5,13 +5,15 @@ import {
   RiArrowRightLine,
   RiThumbUpLine,
   RiThumbDownLine,
+  RiVolumeUpLine,
 } from "@remixicon/react";
 import type { Message, StructuredResponse } from "@/types/chat";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FDBookingCard } from "./fd-booking-card";
 import { encodeBookingCommand } from "@/lib/fd-booking-flow";
-import { useLanguage } from "@/hooks/use-language";
+import { useLanguage, type Language } from "@/hooks/use-language";
 import { pickLocalized } from "@/lib/i18n";
+import { detectMessageLanguage } from "@/lib/language-detection";
 
 interface ChatBubbleProps {
   message: Message;
@@ -106,6 +108,236 @@ function formatRawContent(text: string) {
       </p>
     );
   });
+}
+
+const TTS_STATE_EVENT = "fdadvisor:tts-state";
+let activeSpeechSession = 0;
+let activeSpeechMessageId: string | null = null;
+
+function dispatchTtsState(messageId: string | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(TTS_STATE_EVENT, {
+      detail: {
+        messageId,
+      },
+    })
+  );
+}
+
+function stopSpeech() {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    return;
+  }
+
+  activeSpeechSession += 1;
+  activeSpeechMessageId = null;
+  window.speechSynthesis.cancel();
+  dispatchTtsState(null);
+}
+
+function resolveTtsLocale(language: Language): string {
+  if (language === "en") {
+    return "en-IN";
+  }
+
+  return "hi-IN";
+}
+
+function pickVoice(
+  voices: SpeechSynthesisVoice[],
+  locale: string
+): SpeechSynthesisVoice | null {
+  const exact = voices.find((voice) => voice.lang === locale);
+  if (exact) {
+    return exact;
+  }
+
+  const prefix = locale.split("-")[0]?.toLowerCase();
+  return (
+    voices.find((voice) => voice.lang?.toLowerCase().startsWith(prefix)) ?? null
+  );
+}
+
+function cleanSpeechText(raw: string): string {
+  let text = raw;
+
+  text = text.replace(/```[\s\S]*?```/g, " ");
+  text = text.replace(/`([^`]+)`/g, "$1");
+  text = text.replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1");
+  text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+  text = text.replace(/(\*\*|__)(.*?)\1/g, "$2");
+  text = text.replace(/(\*|_)(.*?)\1/g, "$2");
+  text = text.replace(/^#{1,6}\s+/gm, "");
+  text = text.replace(/^\s*>\s+/gm, "");
+  text = text.replace(/^\s*[-*•]\s+/gm, "");
+  text = text.replace(/^\s*\d+[.)]\s+/gm, "");
+  text = text.replace(/[\p{Extended_Pictographic}]/gu, "");
+  text = text.replace(/[•●■◆►▶]+/g, " ");
+  text = text.replace(/\s{2,}/g, " ").trim();
+
+  const lines = text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return lines.join(". ");
+}
+
+function chunkSpeechText(text: string, maxChars = 180): string[] {
+  const sentences = text.match(/[^.!?।]+[.!?।]*/g);
+  const units = sentences
+    ? sentences.map((sentence) => sentence.trim()).filter(Boolean)
+    : [text];
+  const chunks: string[] = [];
+  let current = "";
+
+  const pushCurrent = () => {
+    if (current.trim()) {
+      chunks.push(current.trim());
+    }
+    current = "";
+  };
+
+  for (const unit of units) {
+    if (!unit) {
+      continue;
+    }
+
+    const next = current ? `${current} ${unit}` : unit;
+    if (next.length <= maxChars) {
+      current = next;
+      continue;
+    }
+
+    pushCurrent();
+
+    if (unit.length <= maxChars) {
+      current = unit;
+      continue;
+    }
+
+    let start = 0;
+    while (start < unit.length) {
+      chunks.push(unit.slice(start, start + maxChars).trim());
+      start += maxChars;
+    }
+  }
+
+  pushCurrent();
+
+  return chunks;
+}
+
+function buildStructuredSpeechText(structured: StructuredResponse): string {
+  const parts: string[] = [];
+
+  if (structured.explanation) parts.push(structured.explanation);
+  if (structured.example) parts.push(structured.example);
+  if (structured.points?.length) parts.push(structured.points.join(". "));
+
+  if (structured.recommendations?.length) {
+    const recLines = structured.recommendations.map((rec) => {
+      const pieces = [
+        rec.bank,
+        rec.rate ? `rate ${rec.rate}%` : "",
+        rec.tenure ? `tenure ${rec.tenure} months` : "",
+        rec.reason ?? "",
+      ].filter(Boolean);
+      return pieces.join(", ");
+    });
+    parts.push(recLines.join(". "));
+  }
+
+  if (structured.nextStep) parts.push(structured.nextStep);
+
+  if (structured.bookingFlow) {
+    const flow = structured.bookingFlow;
+    if (flow.title) parts.push(flow.title);
+    if (flow.subtitle) parts.push(flow.subtitle);
+    if (flow.steps?.length) parts.push(flow.steps.join(". "));
+    if (flow.cta) parts.push(flow.cta);
+    if (flow.suggestions?.length) parts.push(flow.suggestions.join(". "));
+  }
+
+  return parts.join("\n");
+}
+
+function getSpeechText(message: Message): string {
+  if (message.structured) {
+    const structuredText = buildStructuredSpeechText(message.structured);
+    if (structuredText.trim()) {
+      return structuredText;
+    }
+  }
+
+  return message.content;
+}
+
+function speakMessage(message: Message, fallbackLanguage: Language) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    return;
+  }
+
+  const rawText = getSpeechText(message);
+  const cleaned = cleanSpeechText(rawText);
+  if (!cleaned) {
+    return;
+  }
+
+  const detectedLanguage = detectMessageLanguage(cleaned, fallbackLanguage);
+
+  const chunks = chunkSpeechText(cleaned, 180);
+  if (chunks.length === 0) {
+    return;
+  }
+
+  stopSpeech();
+  const sessionId = activeSpeechSession;
+  activeSpeechMessageId = message.id;
+  dispatchTtsState(message.id);
+
+  const locale = resolveTtsLocale(detectedLanguage);
+  const voices = window.speechSynthesis.getVoices();
+  const voice = pickVoice(voices, locale);
+
+  let index = 0;
+
+  const speakNext = () => {
+    if (sessionId !== activeSpeechSession) {
+      return;
+    }
+
+    const chunk = chunks[index];
+    if (!chunk) {
+      activeSpeechMessageId = null;
+      dispatchTtsState(null);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(chunk);
+    utterance.lang = locale;
+    if (voice) {
+      utterance.voice = voice;
+    }
+
+    utterance.onend = () => {
+      index += 1;
+      speakNext();
+    };
+
+    utterance.onerror = () => {
+      activeSpeechMessageId = null;
+      dispatchTtsState(null);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  speakNext();
 }
 
 // ── Phase 8+9: Rich structured card with clickable elements ──
@@ -435,6 +667,52 @@ function FeedbackButtons() {
 
 export function ChatBubble({ message, onActionClick }: ChatBubbleProps) {
   const isUser = message.role === "user";
+  const { language } = useLanguage();
+  const [isSpeaking, setIsSpeaking] = useState(
+    activeSpeechMessageId === message.id
+  );
+  const [canSpeak, setCanSpeak] = useState(false);
+  const text = pickLocalized(language, {
+    english: { listen: "Listen", stop: "Stop" },
+    hindi: { listen: "सुनें", stop: "रोकें" },
+    hinglish: { listen: "Suno", stop: "Roko" },
+    marathi: { listen: "ऐका", stop: "थांबा" },
+    gujarati: { listen: "સાંભળો", stop: "બંધ કરો" },
+    tamil: { listen: "கேள்", stop: "நிறுத்து" },
+    bhojpuri: { listen: "सुनीं", stop: "रोक दीं" },
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    setCanSpeak("speechSynthesis" in window);
+
+    const handleTtsState = (event: Event) => {
+      const detail = (event as CustomEvent<{ messageId: string | null }>).detail;
+      setIsSpeaking(detail?.messageId === message.id);
+    };
+
+    window.addEventListener(TTS_STATE_EVENT, handleTtsState);
+
+    return () => {
+      window.removeEventListener(TTS_STATE_EVENT, handleTtsState);
+    };
+  }, [message.id]);
+
+  const handleSpeakClick = () => {
+    if (!canSpeak) {
+      return;
+    }
+
+    if (isSpeaking) {
+      stopSpeech();
+      return;
+    }
+
+    speakMessage(message, language);
+  };
 
   return (
     <div
@@ -484,7 +762,26 @@ export function ChatBubble({ message, onActionClick }: ChatBubbleProps) {
                 hour12: true,
               })}
             </time>
-            <FeedbackButtons />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSpeakClick}
+                disabled={!canSpeak}
+                aria-label={isSpeaking ? text.stop : text.listen}
+                aria-pressed={isSpeaking}
+                className={cn(
+                  "flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[0.6875rem] font-medium transition-colors",
+                  canSpeak
+                    ? "text-muted-foreground/80 hover:text-primary hover:bg-primary/10"
+                    : "cursor-not-allowed text-muted-foreground/30",
+                  isSpeaking && "text-primary"
+                )}
+              >
+                <RiVolumeUpLine className="size-3" />
+                <span>{isSpeaking ? text.stop : text.listen}</span>
+              </button>
+              <FeedbackButtons />
+            </div>
           </div>
         </div>
       )}
