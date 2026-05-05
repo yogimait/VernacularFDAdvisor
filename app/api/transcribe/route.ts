@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
+    const language = formData.get("language") as string | null;
 
     if (!file) {
       return NextResponse.json(
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
       file: file,
       model: "whisper-large-v3-turbo",
       response_format: "json",
-      language: "hi",
+      ...(language ? { language } : {}),
     });
 
     console.log("[/api/transcribe] Raw response:", JSON.stringify(transcription));

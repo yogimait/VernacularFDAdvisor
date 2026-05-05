@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { RiCloseLine } from "@remixicon/react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { ChatMessages } from "./chat-messages";
 import { ChatInput } from "./chat-input";
@@ -8,6 +9,7 @@ import { useLanguage, type Language } from "@/hooks/use-language";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { pickLocalized } from "@/lib/i18n";
 import { detectMessageLanguage } from "@/lib/language-detection";
+import { isSpeechPlaying, speakMessage, stopSpeech, subscribeTtsState } from "@/lib/tts";
 import { findBestFDs } from "@/lib/fd-data";
 import {
   applyBookingCommand,
@@ -51,6 +53,7 @@ const CHAT_MODES = [
 ] as const;
 
 const RESPONSE_MODE_STORAGE_KEY = "fdadvisor:response-mode";
+const VOICE_MODE_STORAGE_KEY = "fdadvisor:voice-mode";
 const CHAT_HISTORY_CACHE_KEY = "fdadvisor:chat-history-v1";
 const CHAT_RECOMMENDATION_CACHE_KEY = "fdadvisor:chat-recommendations-v1";
 const MAX_CACHED_CHAT_TURNS = 5;
@@ -215,6 +218,23 @@ function readStoredBookingState(): FDBookingState | null {
 
 type ChatMode = (typeof CHAT_MODES)[number]["key"];
 
+type VoiceState = "idle" | "listening" | "thinking" | "speaking";
+
+type SpeechRecognitionInstance = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onstart: (() => void) | null;
+  onresult: ((event: any) => void) | null;
+  onerror: ((event: any) => void) | null;
+  onend: (() => void) | null;
+  onspeechstart?: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort?: () => void;
+};
+
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
@@ -247,6 +267,24 @@ function toBookingLanguage(language: Language): BookingLanguage {
   return "english";
 }
 
+function toSpeechRecognitionLocale(language: Language): string {
+  if (language === "en") return "en-IN";
+  if (language === "mr") return "mr-IN";
+  if (language === "gu") return "gu-IN";
+  if (language === "ta") return "ta-IN";
+  if (language === "bho") return "hi-IN";
+  if (language === "hinglish") return "hi-IN";
+  return "hi-IN";
+}
+
+function toVoiceRecognitionLocale(language: Language): string {
+  if (language === "en" || language === "hinglish") {
+    return "hi-IN";
+  }
+
+  return toSpeechRecognitionLocale(language);
+}
+
 export function ChatContainer() {
   const [messages, setMessages] = useState<Message[]>(() =>
     readCachedMessagesFromStorage()
@@ -255,17 +293,29 @@ export function ChatContainer() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [responseMode, setResponseMode] = useState<"simple" | "detailed">("simple");
+  const [isVoiceModeOn, setIsVoiceModeOn] = useState(false);
+  const [voiceState, setVoiceState] = useState<VoiceState>("idle");
+  const [voiceTranscript, setVoiceTranscript] = useState<string | null>(null);
+  const [voiceReply, setVoiceReply] = useState<string | null>(null);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [isVoiceSupported, setIsVoiceSupported] = useState(true);
   const [activeMode, setActiveMode] = useState<ChatMode>("ask");
   const [showModeActions, setShowModeActions] = useState(true);
   const [bookingState, setBookingState] = useState<FDBookingState | null>(() =>
     readStoredBookingState()
   );
   const isOnline = useOnlineStatus();
+  const { language, setLanguage } = useLanguage();
   const sendDebounceRef = useRef<{ text: string; at: number }>({
     text: "",
     at: 0,
   });
-  const { language, setLanguage } = useLanguage();
+  const inputValueRef = useRef(inputValue);
+  const voiceStateRef = useRef<VoiceState>("idle");
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  const isListeningRef = useRef(false);
+  const autoPlayTriggeredRef = useRef(false);
+  const voiceLocaleRef = useRef<string>(toVoiceRecognitionLocale(language));
   const text = pickLocalized(language, {
     en: {
       modeLabels: {
@@ -445,6 +495,136 @@ export function ChatContainer() {
     },
   });
 
+  const voiceText = pickLocalized(language, {
+    english: {
+      useVoice: "Use voice (multilingual)",
+      closeVoice: "Close voice",
+      toggle: "Toggle voice mode",
+      listening: "Listening",
+      thinking: "Thinking",
+      speaking: "Speaking",
+      idle: "Voice idle",
+      youSaid: "You",
+      assistantSaid: "FD Advisor",
+      unsupported: "Voice mode needs Chrome on desktop/mobile.",
+      offline: "Voice mode needs internet.",
+      error: "Voice input error. Tap again.",
+    },
+    hindi: {
+      useVoice: "वॉइस का उपयोग (बहुभाषी)",
+      closeVoice: "वॉइस बंद करें",
+      toggle: "वॉइस मोड बदलें",
+      listening: "सुन रहा है",
+      thinking: "सोच रहा है",
+      speaking: "बोल रहा है",
+      idle: "वॉइस बंद",
+      youSaid: "आप",
+      assistantSaid: "FD Advisor",
+      unsupported: "वॉइस मोड के लिए Chrome चाहिए।",
+      offline: "वॉइस मोड के लिए इंटरनेट चाहिए।",
+      error: "वॉइस इनपुट में समस्या। फिर टैप करें।",
+    },
+    hinglish: {
+      useVoice: "Use voice (multilingual)",
+      closeVoice: "Close voice",
+      toggle: "Voice mode toggle",
+      listening: "Sun raha hai",
+      thinking: "Soch raha hai",
+      speaking: "Bol raha hai",
+      idle: "Voice idle",
+      youSaid: "Aap",
+      assistantSaid: "FD Advisor",
+      unsupported: "Voice mode ke liye Chrome chahiye.",
+      offline: "Voice mode ke liye internet chahiye.",
+      error: "Voice input error. Dobara tap karein.",
+    },
+    marathi: {
+      useVoice: "व्हॉईस वापरा (बहुभाषिक)",
+      closeVoice: "व्हॉईस बंद करा",
+      toggle: "व्हॉईस मोड बदला",
+      listening: "ऐकत आहे",
+      thinking: "विचार करत आहे",
+      speaking: "बोलत आहे",
+      idle: "व्हॉईस थांबले",
+      youSaid: "तुम्ही",
+      assistantSaid: "FD Advisor",
+      unsupported: "व्हॉईस मोडसाठी Chrome हवा.",
+      offline: "व्हॉईस मोडसाठी इंटरनेट हवा.",
+      error: "व्हॉईस इनपुट त्रुटी. पुन्हा टॅप करा.",
+    },
+    gujarati: {
+      useVoice: "વૉઇસ વાપરો (બહુભાષી)",
+      closeVoice: "વૉઇસ બંધ કરો",
+      toggle: "વૉઇસ મોડ બદલો",
+      listening: "સાંભળે છે",
+      thinking: "વિચાર કરે છે",
+      speaking: "બોલે છે",
+      idle: "વૉઇસ અટક્યું",
+      youSaid: "તમે",
+      assistantSaid: "FD Advisor",
+      unsupported: "વૉઇસ મોડ માટે Chrome જરૂરી છે.",
+      offline: "વૉઇસ મોડ માટે ઇન્ટરનેટ જરૂરી છે.",
+      error: "વૉઇસ ઇનપુટ ભૂલ. ફરીથી ટૅપ કરો.",
+    },
+    tamil: {
+      useVoice: "குரலை பயன்படுத்து (பல்மொழி)",
+      closeVoice: "குரலை நிறுத்து",
+      toggle: "குரல் முறையை மாற்று",
+      listening: "கேட்கிறது",
+      thinking: "யோசிக்கிறது",
+      speaking: "பேசுகிறது",
+      idle: "குரல் நிறுத்தம்",
+      youSaid: "நீங்கள்",
+      assistantSaid: "FD Advisor",
+      unsupported: "குரல் முறைக்கு Chrome தேவை.",
+      offline: "குரல் முறைக்கு இணையம் தேவை.",
+      error: "குரல் உள்ளீட்டு பிழை. மீண்டும் தட்டவும்.",
+    },
+    bhojpuri: {
+      useVoice: "वॉइस इस्तेमाल करीं (बहुभाषी)",
+      closeVoice: "वॉइस बंद करीं",
+      toggle: "वॉइस मोड बदलीं",
+      listening: "सुनत बा",
+      thinking: "सोचत बा",
+      speaking: "बोलत बा",
+      idle: "वॉइस ठहर गइल",
+      youSaid: "रउआ",
+      assistantSaid: "FD Advisor",
+      unsupported: "वॉइस मोड खातिर Chrome चाहीं.",
+      offline: "वॉइस मोड खातिर इंटरनेट चाहीं.",
+      error: "वॉइस इनपुट में दिक्कत बा। फेर टॅप करीं.",
+    },
+  });
+
+  useEffect(() => {
+    voiceStateRef.current = voiceState;
+  }, [voiceState]);
+
+  useEffect(() => {
+    inputValueRef.current = inputValue;
+  }, [inputValue]);
+
+  const voiceStatusLabel =
+    voiceState === "listening"
+      ? voiceText.listening
+      : voiceState === "thinking"
+        ? voiceText.thinking
+        : voiceState === "speaking"
+          ? voiceText.speaking
+          : voiceText.idle;
+
+  const voiceWaveTone =
+    voiceState === "speaking"
+      ? "bg-primary"
+      : voiceState === "listening"
+        ? "bg-chart-1"
+        : voiceState === "thinking"
+          ? "bg-amber-500"
+          : "bg-muted-foreground/40";
+
+  const voiceWaveAnimation =
+    voiceState === "idle" ? "" : "animate-[voiceBar_1s_ease-in-out_infinite]";
+
   const offlineText = pickLocalized(language, {
     english: {
       banner:
@@ -517,6 +697,89 @@ export function ChatContainer() {
     []
   );
 
+  const stopVoiceListening = useCallback(() => {
+    const recognition = recognitionRef.current;
+    if (!recognition) {
+      return;
+    }
+
+    try {
+      recognition.stop();
+    } catch {
+      // no-op
+    }
+    isListeningRef.current = false;
+  }, []);
+
+  const startVoiceListening = useCallback(() => {
+    if (!isVoiceModeOn || !isOnline) {
+      return;
+    }
+
+    if (inputValue.trim().length > 0 || isLoading) {
+      return;
+    }
+
+    const recognition = recognitionRef.current;
+    if (!recognition || isListeningRef.current) {
+      return;
+    }
+
+    try {
+      recognition.lang = voiceLocaleRef.current;
+      recognition.start();
+    } catch {
+      // no-op
+    }
+  }, [inputValue, isLoading, isOnline, isVoiceModeOn]);
+
+  const toggleVoiceMode = useCallback(() => {
+    setIsVoiceModeOn((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          VOICE_MODE_STORAGE_KEY,
+          next ? "on" : "off"
+        );
+      }
+
+      if (!next) {
+        stopVoiceListening();
+        setVoiceState("idle");
+        setVoiceError(null);
+      }
+      return next;
+    });
+  }, [stopVoiceListening]);
+
+  const maybeAutoPlay = useCallback(
+    (message: Message) => {
+      if (!isVoiceModeOn) {
+        return;
+      }
+
+      if (inputValue.trim().length > 0) {
+        return;
+      }
+
+      if (isSpeechPlaying()) {
+        return;
+      }
+
+      autoPlayTriggeredRef.current = true;
+      setVoiceReply(message.structured?.explanation || message.content);
+      setVoiceState("speaking");
+      speakMessage(message, language, {
+        interrupt: false,
+        summaryOnly: true,
+        maxSentences: 2,
+        maxChars: 240,
+      });
+      startVoiceListening();
+    },
+    [inputValue, isVoiceModeOn, language, startVoiceListening]
+  );
+
   const appendAssistantMessage = useCallback(
     (content: string, structured?: StructuredResponse) => {
       const assistantMessage: Message = {
@@ -528,8 +791,9 @@ export function ChatContainer() {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+      maybeAutoPlay(assistantMessage);
     },
-    []
+    [maybeAutoPlay]
   );
 
   const appendUserMessage = useCallback((content: string) => {
@@ -658,19 +922,23 @@ export function ChatContainer() {
           language: inputBookingLanguage,
         });
 
+        const bookingUpdateMessage: Message = {
+          id: generateId(),
+          role: "assistant",
+          content:
+            updatedStructured.explanation ||
+            text.bookingUpdatedFallback,
+          timestamp: new Date(),
+          structured: updatedStructured,
+        };
+
         setMessages((prev) => [
           ...prev,
           userMessage,
-          {
-            id: generateId(),
-            role: "assistant",
-            content:
-              updatedStructured.explanation ||
-              text.bookingUpdatedFallback,
-            timestamp: new Date(),
-            structured: updatedStructured,
-          },
+          bookingUpdateMessage,
         ]);
+
+        maybeAutoPlay(bookingUpdateMessage);
 
         setInputValue("");
         return;
@@ -695,19 +963,19 @@ export function ChatContainer() {
             nextStep: offlineText.basicNextStep,
           };
 
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: generateId(),
-            role: "assistant",
-            content:
-              cachedRecommendation ? offlineText.cachedReply : offlineText.basicReply,
-            timestamp: new Date(),
-            structured: fallbackStructured,
-          },
-        ]);
+        const offlineMessage: Message = {
+          id: generateId(),
+          role: "assistant",
+          content:
+            cachedRecommendation ? offlineText.cachedReply : offlineText.basicReply,
+          timestamp: new Date(),
+          structured: fallbackStructured,
+        };
+
+        setMessages((prev) => [...prev, offlineMessage]);
 
         cacheRecommendationSnapshot(fallbackStructured);
+        maybeAutoPlay(offlineMessage);
         return;
       }
 
@@ -746,6 +1014,7 @@ export function ChatContainer() {
 
         setMessages((prev) => [...prev, aiMessage]);
         cacheRecommendationSnapshot(data.structured || undefined);
+        maybeAutoPlay(aiMessage);
 
         if (
           data.structured?.type === "booking_flow" &&
@@ -758,18 +1027,18 @@ export function ChatContainer() {
             { reminder: true, language: inputBookingLanguage }
           );
 
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: generateId(),
-              role: "assistant",
-              content:
-                reminderStructured.explanation ||
-                text.resumeFallback,
-              timestamp: new Date(),
-              structured: reminderStructured,
-            },
-          ]);
+          const reminderMessage: Message = {
+            id: generateId(),
+            role: "assistant",
+            content:
+              reminderStructured.explanation ||
+              text.resumeFallback,
+            timestamp: new Date(),
+            structured: reminderStructured,
+          };
+
+          setMessages((prev) => [...prev, reminderMessage]);
+          maybeAutoPlay(reminderMessage);
         }
       } catch (error) {
         console.error("Chat error:", error);
@@ -782,6 +1051,7 @@ export function ChatContainer() {
         };
 
         setMessages((prev) => [...prev, errorMessage]);
+        maybeAutoPlay(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -798,6 +1068,7 @@ export function ChatContainer() {
       offlineText.basicPoints,
       offlineText.basicReply,
       offlineText.cachedReply,
+      maybeAutoPlay,
       responseMode,
       text.bookingUpdatedFallback,
       text.errorFallback,
@@ -805,6 +1076,184 @@ export function ChatContainer() {
       text.updatedBooking,
     ]
   );
+
+  const sendMessageRef = useRef(sendMessage);
+
+  useEffect(() => {
+    sendMessageRef.current = sendMessage;
+  }, [sendMessage]);
+
+  useEffect(() => {
+    if (!isVoiceModeOn) {
+      stopVoiceListening();
+      setVoiceState("idle");
+      return;
+    }
+
+    if (!isOnline) {
+      stopVoiceListening();
+      setVoiceError(voiceText.offline);
+      setVoiceState("idle");
+      return;
+    }
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const SpeechRecognitionConstructor =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionConstructor) {
+      setIsVoiceSupported(false);
+      setVoiceError(voiceText.unsupported);
+      setVoiceState("idle");
+      return;
+    }
+
+    setIsVoiceSupported(true);
+    setVoiceError(null);
+
+    const recognition = new SpeechRecognitionConstructor() as SpeechRecognitionInstance;
+    const initialLocale = toVoiceRecognitionLocale(language);
+    voiceLocaleRef.current = initialLocale;
+    recognition.lang = initialLocale;
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      isListeningRef.current = true;
+      if (voiceStateRef.current !== "speaking" && voiceStateRef.current !== "thinking") {
+        setVoiceState("listening");
+      }
+    };
+
+    recognition.onspeechstart = () => {
+      if (voiceStateRef.current === "speaking") {
+        stopSpeech();
+        setVoiceState("listening");
+      }
+    };
+
+    recognition.onresult = async (event: any) => {
+      const transcript =
+        event?.results?.[0]?.[0]?.transcript?.trim() ?? "";
+      if (!transcript) {
+        setVoiceState("listening");
+        return;
+      }
+
+      const detectedLanguage = detectMessageLanguage(transcript, language);
+      const nextLocale = toSpeechRecognitionLocale(detectedLanguage);
+      voiceLocaleRef.current = nextLocale;
+      recognition.lang = nextLocale;
+
+      if (isLoading) {
+        return;
+      }
+
+      setVoiceTranscript(transcript);
+      setVoiceError(null);
+      setVoiceState("thinking");
+      autoPlayTriggeredRef.current = false;
+
+      try {
+        await sendMessageRef.current(transcript);
+      } catch {
+        setVoiceError(voiceText.error);
+      }
+
+      if (
+        isVoiceModeOn &&
+        !autoPlayTriggeredRef.current &&
+        inputValueRef.current.trim().length === 0
+      ) {
+        setVoiceState("idle");
+      }
+    };
+
+    recognition.onerror = () => {
+      isListeningRef.current = false;
+      setVoiceError(voiceText.error);
+      setVoiceState("idle");
+    };
+
+    recognition.onend = () => {
+      isListeningRef.current = false;
+      if (isVoiceModeOn && voiceStateRef.current === "listening") {
+        startVoiceListening();
+      }
+    };
+
+    recognitionRef.current = recognition;
+    startVoiceListening();
+
+    return () => {
+      recognition.onstart = null;
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
+      recognition.onspeechstart = null;
+      recognition.abort?.();
+      recognitionRef.current = null;
+    };
+  }, [
+    isVoiceModeOn,
+    isOnline,
+    isLoading,
+    language,
+    startVoiceListening,
+    stopVoiceListening,
+    voiceText.error,
+    voiceText.offline,
+    voiceText.unsupported,
+  ]);
+
+  useEffect(() => {
+    if (!isVoiceModeOn) {
+      return;
+    }
+
+    if (inputValue.trim().length > 0) {
+      stopVoiceListening();
+      setVoiceState("idle");
+      return;
+    }
+
+    if (voiceStateRef.current === "thinking") {
+      return;
+    }
+
+    if (voiceStateRef.current === "speaking") {
+      return;
+    }
+
+    if (!isListeningRef.current && isOnline) {
+      startVoiceListening();
+    }
+  }, [inputValue, isOnline, isVoiceModeOn, startVoiceListening, stopVoiceListening]);
+
+  useEffect(() => {
+    if (!isVoiceModeOn) {
+      return;
+    }
+
+    return subscribeTtsState((messageId) => {
+      if (!isVoiceModeOn) {
+        return;
+      }
+
+      if (messageId) {
+        setVoiceState("speaking");
+        return;
+      }
+
+      if (voiceStateRef.current === "speaking") {
+        setVoiceState("idle");
+      }
+    });
+  }, [isVoiceModeOn]);
 
   const handleModeSelect = useCallback(
     (mode: ChatMode) => {
@@ -929,6 +1378,22 @@ export function ChatContainer() {
     }
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const stored = window.localStorage.getItem(VOICE_MODE_STORAGE_KEY);
+    if (stored === "on" || stored === "true" || stored === "1") {
+      setIsVoiceModeOn(true);
+      return;
+    }
+
+    if (stored === "off" || stored === "false" || stored === "0") {
+      setIsVoiceModeOn(false);
+    }
+  }, []);
+
   const handleResponseModeChange = useCallback((mode: "simple" | "detailed") => {
     setResponseMode(mode);
 
@@ -958,6 +1423,48 @@ export function ChatContainer() {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
+      {isVoiceModeOn ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="relative flex w-[min(90vw,520px)] flex-col items-center gap-4 rounded-3xl border border-white/10 bg-white/5 px-6 py-6 text-center shadow-2xl">
+            <button
+              type="button"
+              onClick={toggleVoiceMode}
+              aria-label={voiceText.closeVoice}
+              className="absolute right-3 top-3 flex size-7 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white"
+            >
+              <RiCloseLine className="size-4" />
+            </button>
+            <div className="flex items-end gap-2">
+              {[0, 1, 2, 3, 4].map((index) => (
+                <span
+                  key={`voice-overlay-wave-${index}`}
+                  className={`h-12 w-3 rounded-full ${voiceWaveTone} ${voiceWaveAnimation}`}
+                  style={{ animationDelay: `${index * 0.12}s` }}
+                />
+              ))}
+            </div>
+            <p className="text-sm font-semibold text-white/90">{voiceStatusLabel}</p>
+            {voiceTranscript ? (
+              <p className="text-[0.8125rem] text-white/80">
+                {voiceText.youSaid}: {voiceTranscript}
+              </p>
+            ) : null}
+            {voiceReply ? (
+              <p className="text-[0.8125rem] text-white/70">
+                {voiceText.assistantSaid}: {voiceReply}
+              </p>
+            ) : null}
+            {voiceError ? (
+              <p className="text-[0.75rem] text-red-200">{voiceError}</p>
+            ) : null}
+            {!isVoiceSupported ? (
+              <p className="text-[0.75rem] text-white/60">
+                {voiceText.unsupported}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       {!isOnline ? (
         <div className="shrink-0 border-b border-amber-400/30 bg-amber-500/10 px-4 py-2 text-[0.75rem] font-medium text-amber-800 dark:text-amber-200 sm:px-6">
           {offlineText.banner}
@@ -1014,6 +1521,11 @@ export function ChatContainer() {
         responseMode={responseMode}
         onResponseModeChange={handleResponseModeChange}
         onCalculatorOpen={() => setIsCalculatorOpen(true)}
+        isVoiceModeOn={isVoiceModeOn}
+        onVoiceModeToggle={toggleVoiceMode}
+        voiceModeLabel={voiceText.useVoice}
+        voiceModeCloseLabel={voiceText.closeVoice}
+        voiceModeAriaLabel={voiceText.toggle}
         isLoading={isLoading}
         isOffline={!isOnline}
         hasMessages={messages.length > 0}

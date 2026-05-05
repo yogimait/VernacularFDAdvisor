@@ -9,6 +9,7 @@ import {
   RiStopCircleLine,
   RiLoader4Line,
   RiCalculatorLine,
+  RiCloseLine,
   RiMoneyDollarCircleLine,
   RiLightbulbLine,
   RiBarChartBoxLine,
@@ -25,6 +26,11 @@ interface ChatInputProps {
   responseMode: "simple" | "detailed";
   onResponseModeChange: (mode: "simple" | "detailed") => void;
   onCalculatorOpen: () => void;
+  isVoiceModeOn: boolean;
+  onVoiceModeToggle: () => void;
+  voiceModeLabel: string;
+  voiceModeCloseLabel: string;
+  voiceModeAriaLabel: string;
   isLoading: boolean;
   isOffline: boolean;
   hasMessages: boolean;
@@ -110,6 +116,11 @@ export function ChatInput({
   responseMode,
   onResponseModeChange,
   onCalculatorOpen,
+  isVoiceModeOn,
+  onVoiceModeToggle,
+  voiceModeLabel,
+  voiceModeCloseLabel,
+  voiceModeAriaLabel,
   isLoading,
   isOffline,
   hasMessages,
@@ -386,9 +397,32 @@ export function ChatInput({
 
   return (
     <div className="shrink-0 border-t border-border bg-card/60 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:px-6">
-      <div className="mx-auto mb-2 flex max-w-3xl items-center justify-between gap-2">
-        <p className="text-[0.6875rem] font-medium text-muted-foreground">{modeText.responseStyle}</p>
-        <div className="inline-flex rounded-full border border-border bg-background/60 p-0.5">
+      <div className="mx-auto mb-2 grid max-w-3xl grid-cols-[1fr_auto_1fr] items-center gap-2">
+        <p className="text-[0.6875rem] font-medium text-muted-foreground">
+          {modeText.responseStyle}
+        </p>
+        <button
+          type="button"
+          onClick={onVoiceModeToggle}
+          aria-pressed={isVoiceModeOn}
+          aria-label={voiceModeAriaLabel}
+          id="voice-mode-toggle"
+          className={`inline-flex items-center justify-center gap-1.5 rounded-full border px-2 py-2 text-[0.6875rem] font-medium transition-colors sm:px-3 sm:py-1 ${
+            isVoiceModeOn
+              ? "border-primary/50 bg-primary/10 text-primary"
+              : "border-border bg-background/70 text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {isVoiceModeOn ? (
+            <RiCloseLine className="size-3" />
+          ) : (
+            <RiMicLine className="size-3" />
+          )}
+          <span className="hidden sm:inline">
+            {isVoiceModeOn ? voiceModeCloseLabel : voiceModeLabel}
+          </span>
+        </button>
+        <div className="inline-flex justify-self-end rounded-full border border-border bg-background/60 p-0.5">
           {(["simple", "detailed"] as const).map((mode) => (
             <button
               key={`response-mode-${mode}`}

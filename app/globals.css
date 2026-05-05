@@ -153,6 +153,17 @@
   }
 }
 
+@keyframes voiceBar {
+  0%, 100% {
+    transform: scaleY(0.45);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
 .fd-range-slider {
   -webkit-appearance: none;
   appearance: none;
