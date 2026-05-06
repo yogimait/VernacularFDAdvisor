@@ -116,6 +116,7 @@ export function ExploreFDPage() {
       cardHighReturnTag: "High return option",
       cardSafetyTag: "DICGC insured up to Rs 5 lakh (as applicable)",
       cardBestFor: "Best for",
+      resetFilters: "Reset Filters",
     },
     hindi: {
       title: "FD विकल्प खोजें",
@@ -167,6 +168,14 @@ export function ExploreFDPage() {
       interestView: "ब्याज",
       basedOnAmount: "आपकी राशि के आधार पर",
       noVisualData: "इन फिल्टर्स के लिए विजुअल डेटा उपलब्ध नहीं है।",
+      askAi: "AI से पूछें",
+      safestOption: "सबसे सुरक्षित विकल्प",
+      highestRateFound: "सबसे अधिक रेट",
+      trustLine: "रेट अनुक्रमित सार्वजनिक डेटा पर आधारित हैं। अंतिम दरें बैंक द्वारा बदली जा सकती हैं।",
+      cardHighReturnTag: "उच्च रिटर्न विकल्प",
+      cardSafetyTag: "DICGC द्वारा Rs 5 लाख तक बीमा (यथा लागू)",
+      cardBestFor: "किसके लिए अच्छा",
+      resetFilters: "फिल्टर रिसेट करें",
     },
     hinglish: {
       title: "Explore FD Options",
@@ -218,6 +227,14 @@ export function ExploreFDPage() {
       interestView: "Interest",
       basedOnAmount: "Based on your amount",
       noVisualData: "Current filters ke liye visual data available nahi hai.",
+      askAi: "AI se pucho",
+      safestOption: "Sabse safe option",
+      highestRateFound: "Highest rate found",
+      trustLine: "Rates indexed public data pe based hain. Final rates bank revise kar sakta hai.",
+      cardHighReturnTag: "High return option",
+      cardSafetyTag: "DICGC insured Rs 5 lakh tak",
+      cardBestFor: "Best for",
+      resetFilters: "Reset Filters",
     },
     marathi: {
       title: "FD पर्याय शोधा",
@@ -269,6 +286,14 @@ export function ExploreFDPage() {
       interestView: "व्याज",
       basedOnAmount: "रकमेच्या आधारे",
       noVisualData: "सध्याच्या फिल्टर्ससाठी व्हिज्युअल डेटा उपलब्ध नाही.",
+      askAi: "AI ला विचारा",
+      safestOption: "सर्वात सुरक्षित पर्याय",
+      highestRateFound: "सर्वात जास्त दर",
+      trustLine: "दर अनुक्रमित सार्वजनिक डेटावर आधारित. अंतिम दर बँकेनुसार बदलू शकतात.",
+      cardHighReturnTag: "उच्च परतावा पर्याय",
+      cardSafetyTag: "DICGC द्वारे Rs 5 लाखपर्यंत विमा (यथा लागू)",
+      cardBestFor: "कोणासाठी चांगले",
+      resetFilters: "फिल्टर रिसेट",
     },
     gujarati: {
       title: "FD વિકલ્પો શોધો",
@@ -320,6 +345,14 @@ export function ExploreFDPage() {
       interestView: "વ્યાજ",
       basedOnAmount: "રકમના આધારે",
       noVisualData: "હાલના ફિલ્ટર્સ માટે વિઝ્યુઅલ ડેટા ઉપલબ્ધ નથી.",
+      askAi: "AI ને પૂછો",
+      safestOption: "સૌથી સુરક્ષિત વિકલ્પ",
+      highestRateFound: "સૌથી વધુ દર",
+      trustLine: "દર અનુક્રમિત જાહેર ડેટા પર આધારિત. અંતિમ દર બેંક દ્વારા બદલાઈ શકે.",
+      cardHighReturnTag: "ઉચ્ચ રિટર્ન વિકલ્પ",
+      cardSafetyTag: "DICGC દ્વારા Rs 5 લાખ સુધી વીમા",
+      cardBestFor: "કોના માટે સારું",
+      resetFilters: "ફિલ્ટર રિસેટ",
     },
     tamil: {
       title: "FD விருப்பங்களை ஆராயுங்கள்",
@@ -371,6 +404,14 @@ export function ExploreFDPage() {
       interestView: "வட்டி",
       basedOnAmount: "தொகையை அடிப்படையாகக் கொண்டு",
       noVisualData: "தற்போதைய வடிகட்டலுக்கு காட்சி தரவு இல்லை.",
+      askAi: "AI இடம் கேளுங்கள்",
+      safestOption: "மிகவும் பாதுகாப்பான விருப்பம்",
+      highestRateFound: "அதிகபட்ச விகிதம்",
+      trustLine: "விகிதங்கள் அநுக்ரமித பொது தரவு அடிப்படையில். இறுதி விகிதங்கள் வங்கி மாற்றக்கூடும்.",
+      cardHighReturnTag: "அதிக வருமான விருப்பம்",
+      cardSafetyTag: "DICGC மூலம் Rs 5 லட்சம் வரை காப்பீடு",
+      cardBestFor: "எவருக்கு சிறந்தது",
+      resetFilters: "வடிகட்டி மீட்டமை",
     },
     bhojpuri: {
       title: "FD विकल्प खोजीं",
@@ -422,6 +463,14 @@ export function ExploreFDPage() {
       interestView: "ब्याज",
       basedOnAmount: "राशि के आधार पर",
       noVisualData: "मौजूदा फिल्टर खातिर विजुअल डेटा उपलब्ध नइखे।",
+      askAi: "AI से पूछीं",
+      safestOption: "सबसे सुरक्षित विकल्प",
+      highestRateFound: "सबसे जादा रेट",
+      trustLine: "रेट अनुक्रमित सार्वजनिक डेटा पर आधारित। अंतिम दर बैंक द्वारा बदली जा सकेला।",
+      cardHighReturnTag: "उच्च रिटर्न विकल्प",
+      cardSafetyTag: "DICGC द्वारा Rs 5 लाख तक बीमा",
+      cardBestFor: "किनका खातिर बढ़िया",
+      resetFilters: "फिल्टर रिसेट",
     },
   });
 
@@ -544,7 +593,7 @@ export function ExploreFDPage() {
 
   return (
     <div className="h-full min-h-0 overflow-y-auto bg-background">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pb-6 pt-8 sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pb-6 pt-8 sm:px-6 lg:max-w-7xl">
         <Card className="border border-primary/30 bg-primary/5">
           <CardContent className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -660,6 +709,22 @@ export function ExploreFDPage() {
               </select>
             </div>
           </CardContent>
+          <div className="flex justify-end px-4 pb-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setAmount(100000);
+                setTenureFilter("12");
+                setRiskLevel("all");
+                setBankType("all");
+                setSortBy("highest-return");
+              }}
+              className="text-xs"
+            >
+              {text.resetFilters}
+            </Button>
+          </div>
         </Card>
 
         <Card className="border border-border bg-card/70">

@@ -138,6 +138,11 @@ export function isBookingRelatedMessage(message: string): boolean {
   );
 }
 
+export function isComparisonIntentMessage(message: string): boolean {
+  const text = message.toLowerCase();
+  return /\b(compare|tulna|best|highest|top|recommend|option|sabse zyada|zyada return)\b/i.test(text);
+}
+
 export function extractBankFromText(message: string): string | null {
   for (const alias of BANK_ALIASES) {
     if (alias.pattern.test(message)) {

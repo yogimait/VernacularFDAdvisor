@@ -326,6 +326,14 @@ export function ProfileSettingsPage() {
   });
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const savedName = window.localStorage.getItem(PROFILE_NAME_KEY);
+    const savedEmail = window.localStorage.getItem(PROFILE_EMAIL_KEY);
+    if (savedName) setName(savedName);
+    if (savedEmail) setEmail(savedEmail);
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
@@ -383,7 +391,10 @@ export function ProfileSettingsPage() {
 
   return (
     <div className="h-full min-h-0 overflow-y-auto bg-background">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 pb-6 pt-8 sm:px-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 pb-6 pt-8 sm:px-6 lg:max-w-6xl">
+        {/* Desktop 2-column grid */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr,1fr]">
+        <div className="flex flex-col gap-4">
         <Card className="border border-border bg-card/80">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -484,7 +495,11 @@ export function ProfileSettingsPage() {
             </div>
           </CardContent>
         </Card>
+        {/* end left column */}
+        </div>
 
+        {/* Right column on desktop */}
+        <div className="flex flex-col gap-4">
         <Card className="border border-border bg-card/70">
           <CardHeader>
             <CardTitle className="text-sm">{text.fdHistory}</CardTitle>
@@ -596,12 +611,20 @@ export function ProfileSettingsPage() {
             </Button>
           </CardFooter>
         </Card>
+        {/* end right column */}
+        </div>
+        {/* end grid */}
+        </div>
 
         {status && (
           <Card className="border border-primary/25 bg-primary/5">
             <CardContent className="pt-4 text-xs text-primary">{status}</CardContent>
           </Card>
         )}
+
+        <div className="flex items-center justify-center py-2">
+          <Badge variant="outline" className="text-[0.625rem] text-muted-foreground">FD Advisor v1.0.0</Badge>
+        </div>
       </div>
     </div>
   );

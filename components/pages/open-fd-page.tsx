@@ -112,6 +112,11 @@ export function OpenFDPage() {
       growthTimeline: "ग्रोथ टाइमलाइन",
       growthTimelineHint: "हर चरण में आपकी रकम कैसे बढ़ती है, देखें।",
       quickTenure: "त्वरित अवधि",
+      trustLine: "अनुमानित रिटर्न इंडेक्स्ड डेटा पर आधारित। बुकिंग से पहले बैंक का रेट जरूर जाँचें।",
+      finalChecklist: "अंतिम पुष्टि चेकलिस्ट",
+      lockInNote: "लॉक-इन अवधि चुनी हुई अवधि पर निर्भर करती है।",
+      penaltyNote: "जल्द निकासी पर जुर्माना लग सकता है।",
+      verifyRate: "भुगतान से पहले बैंक का अंतिम रेट जरूर सत्यापित करें।",
     },
     hinglish: {
       title: "Open FD Flow",
@@ -142,6 +147,11 @@ export function OpenFDPage() {
       growthTimeline: "Growth Timeline",
       growthTimelineHint: "Har step me paisa kaise grow hota hai, dekho.",
       quickTenure: "Quick tenure",
+      trustLine: "Estimated returns indexed data pe based hain. Bank ka final rate booking se pehle verify karo.",
+      finalChecklist: "Final confirmation checklist",
+      lockInNote: "Lock-in period selected tenure par depend karta hai.",
+      penaltyNote: "Premature withdrawal penalty lag sakta hai.",
+      verifyRate: "Payment se pehle bank ka final rate verify karo.",
     },
     marathi: {
       title: "FD उघडा फ्लो",
@@ -172,6 +182,11 @@ export function OpenFDPage() {
       growthTimeline: "वाढ टाइमलाइन",
       growthTimelineHint: "निवडलेल्या कालावधीत मूल्य कसे वाढते ते पहा.",
       quickTenure: "जलद कालावधी",
+      trustLine: "अंदाजित परतावा इंडेक्स्ड डेटावर आधारित. बुकिंगपूर्वी बँकेचा अंतिम दर तपासा.",
+      finalChecklist: "अंतिम पुष्टी यादी",
+      lockInNote: "लॉक-इन कालावधी निवडलेल्या कालावधीवर अवलंबून आहे.",
+      penaltyNote: "मुदतपूर्व पैसे काढण्यावर दंड लागू शकतो.",
+      verifyRate: "पेमेंटपूर्वी बँकेचा अंतिम दर तपासा.",
     },
     gujarati: {
       title: "FD ઓપન ફ્લો",
@@ -202,6 +217,11 @@ export function OpenFDPage() {
       growthTimeline: "વૃદ્ધિ સમયરેખા",
       growthTimelineHint: "પસંદ કરેલી અવધિમાં મૂલ્ય કેવી રીતે વધે છે તે જુઓ.",
       quickTenure: "ઝડપી અવધિ",
+      trustLine: "અંદાજિત રિટર્ન ઇન્ડેક્સ્ડ ડેટા પર આધારિત. બુકિંગ પહેલાં બેંકનો દર વેરિફાઈ કરો.",
+      finalChecklist: "અંતિમ પુષ્ટિ ચેકલિસ્ટ",
+      lockInNote: "લોક-ઇન અવધિ પસંદ કરેલી અવધિ પર આધારિત.",
+      penaltyNote: "સમય પહેલાં પૈસા કાઢવા પર દંડ લાગી શકે.",
+      verifyRate: "પેમેન્ટ પહેલાં બેંકનો અંતિમ દર વેરિફાઈ કરો.",
     },
     tamil: {
       title: "FD திறப்பு நடைமுறை",
@@ -232,6 +252,11 @@ export function OpenFDPage() {
       growthTimeline: "வளர்ச்சி காலவரிசை",
       growthTimelineHint: "தேர்ந்தெடுத்த காலத்தில் மதிப்பு எப்படி வளருகிறது என்பதைப் பாருங்கள்.",
       quickTenure: "விரைவு காலம்",
+      trustLine: "மதிப்பிடப்பட்ட வருமானம் இந்டெக்ஸ்ட் தரவு அடிப்படையில். பதிவு செய்யும் முன் வங்கி விகிதம் சரிபார்க்கவும்.",
+      finalChecklist: "இறுதி உறுதி பட்டியல்",
+      lockInNote: "லாக்-இன் காலம் தேர்ந்தெடுக்கப்பட்ட காலத்தை பொறுத்தது.",
+      penaltyNote: "முதிர்வுக்கு முன் பணம் எடுப்பதற்கு தண்டம் விதிக்கப்படலாம்.",
+      verifyRate: "செலுத்தத்திற்கு முன் வங்கியின் இறுதி விகிதம் சரிபார்க்கவும்.",
     },
     bhojpuri: {
       title: "FD खोलल फ्लो",
@@ -262,6 +287,11 @@ export function OpenFDPage() {
       growthTimeline: "ग्रोथ टाइमलाइन",
       growthTimelineHint: "चुनल अवधि में वैल्यू कइसे बढ़ेला, देखीं।",
       quickTenure: "फटाफट अवधि",
+      trustLine: "अनुमानित रिटर्न इंडेक्स्ड डेटा पर आधारित बा। बुकिंग से पहिले बैंक का रेट जरूर जाँचीं।",
+      finalChecklist: "अंतिम पुष्टि चेकलिस्ट",
+      lockInNote: "लॉक-इन अवधि चुनल अवधि पर निर्भर करेला।",
+      penaltyNote: "जल्द निकासी पर जुर्माना लाग सकेला।",
+      verifyRate: "भुगतान से पहिले बैंक के अंतिम रेट जरूर जाँचीं।",
     },
   });
   const wizardText = pickLocalized(language, {
@@ -425,7 +455,7 @@ export function OpenFDPage() {
 
   return (
     <div className="h-full min-h-0 overflow-y-auto bg-background">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 pb-6 pt-8 sm:px-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 pb-6 pt-8 sm:px-6 lg:max-w-6xl">
         <Card className="border border-border bg-card/80">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

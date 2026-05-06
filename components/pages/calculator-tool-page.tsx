@@ -24,8 +24,9 @@ import { openChatWithMessage } from "@/lib/chat-navigation";
 import { useLanguage } from "@/hooks/use-language";
 import { pickLocalized } from "@/lib/i18n";
 
-const AMOUNT_PRESETS = [10000, 50000, 100000] as const;
-const TENURE_PRESETS = [6, 12, 36] as const;
+const AMOUNT_PRESETS = [10000, 50000, 100000, 500000] as const;
+const TENURE_PRESETS = [6, 12, 24, 36, 60] as const;
+const RATE_PRESETS = [6, 7, 7.5, 8.5, 9] as const;
 
 export function CalculatorToolPage() {
   const router = useRouter();
@@ -57,6 +58,9 @@ export function CalculatorToolPage() {
       smartInsights: "Smart insights",
       trustLine:
         "Rates are indicative based on indexed data and may differ from live bank rates.",
+      smartInsight1: "Extending tenure can increase total returns if rate stays similar.",
+      smartInsight2: "Quarterly compounding generally beats simple payout for growth goals.",
+      smartInsight3: "Compare with SBI/HDFC options to balance trust and return.",
     },
     hindi: {
       title: "FD कैलकुलेटर",
@@ -80,6 +84,12 @@ export function CalculatorToolPage() {
       visualHint: "आमतौर पर लंबी अवधि में अंतिम रकम ज्यादा होती है।",
       maturityEstimate: "अनुमानित मैच्योरिटी",
       principalVsInterest: "मूलधन और ब्याज विभाजन",
+      effectiveMonthlyGain: "प्रभावी मासिक लाभ",
+      smartInsights: "स्मार्ट इनसाइट्स",
+      trustLine: "ये रेट अनुमानित हैं और लाइव बैंक रेट से भिन्न हो सकते हैं।",
+      smartInsight1: "लंबी अवधि में टोटल रिटर्न बढ़ सकता है।",
+      smartInsight2: "त्रैमासिक कंपाउंडिंग ग्रोथ के लिए बेहतर है।",
+      smartInsight3: "SBI/HDFC से तुलना कर भरोसा और रिटर्न दोनों देखें।",
     },
     hinglish: {
       title: "FD Calculator",
@@ -103,6 +113,12 @@ export function CalculatorToolPage() {
       visualHint: "Lamba tenure ho to final paisa usually zyada hota hai.",
       maturityEstimate: "Maturity estimate",
       principalVsInterest: "Principal vs interest split",
+      effectiveMonthlyGain: "Effective monthly gain",
+      smartInsights: "Smart insights",
+      trustLine: "Ye rates indicative hain aur live bank rates se alag ho sakte hain.",
+      smartInsight1: "Lamba tenure me total returns badh sakte hain.",
+      smartInsight2: "Quarterly compounding growth ke liye better hota hai.",
+      smartInsight3: "SBI/HDFC se compare karke trust aur return dono dekho.",
     },
     marathi: {
       title: "FD कॅल्क्युलेटर",
@@ -126,6 +142,12 @@ export function CalculatorToolPage() {
       visualHint: "निकाल पटकन तुलना करण्यासाठी मोड बदला.",
       maturityEstimate: "मॅच्युरिटी अंदाज",
       principalVsInterest: "मूलधन विरुद्ध व्याज विभाजन",
+      effectiveMonthlyGain: "प्रभावी मासिक नफा",
+      smartInsights: "स्मार्ट इनसाइट्स",
+      trustLine: "हे दर अनुमानित आहेत आणि बँकेच्या लाइव्ह दरांपेक्षा भिन्न असू शकतात.",
+      smartInsight1: "दीर्घ कालावधीत एकूण परतावा वाढू शकतो.",
+      smartInsight2: "तिमाही कंपाउंडिंग वाढीसाठी चांगले.",
+      smartInsight3: "SBI/HDFC शी तुलना करून विश्वास आणि परतावा पहा.",
     },
     gujarati: {
       title: "FD કેલ્ક્યુલેટર",
@@ -149,6 +171,12 @@ export function CalculatorToolPage() {
       visualHint: "ઝડપી તુલના માટે મોડ બદલો.",
       maturityEstimate: "મેચ્યોરિટી અંદાજ",
       principalVsInterest: "મૂળ રકમ સામે વ્યાજ વિભાજન",
+      effectiveMonthlyGain: "અસરકારક માસિક લાભ",
+      smartInsights: "સ્માર્ટ ઇન્સાઇટ્સ",
+      trustLine: "આ દર અંદાજિત છે અને લાઇવ બેંક દરથી ભિન્ન હોઈ શકે.",
+      smartInsight1: "લાંબી અવધિમાં કુલ રિટર્ન વધી શકે.",
+      smartInsight2: "ત્રિમાસિક કમ્પાઉન્ડિંગ વૃદ્ધિ માટે સારું.",
+      smartInsight3: "SBI/HDFC સાથે સરખામણી કરી વિશ્વાસ અને રિટર્ન બંને જુઓ.",
     },
     tamil: {
       title: "FD கணிப்பான்",
@@ -172,6 +200,12 @@ export function CalculatorToolPage() {
       visualHint: "விளைவுகளை விரைவாக ஒப்பிட மோடை மாற்றவும்.",
       maturityEstimate: "முதிர்வு மதிப்பீடு",
       principalVsInterest: "முதல்தொகை vs வட்டி பகிர்வு",
+      effectiveMonthlyGain: "திறம்பட மாத லாபம்",
+      smartInsights: "ஸ்மார்ட் குறிப்புகள்",
+      trustLine: "இந்த விகிதங்கள் குறிப்பீடு மட்டுமே, வங்கி விகிதங்கள் வேறுபடலாம்.",
+      smartInsight1: "நீண்ட காலத்தில் மொத்த வருமானம் அதிகரிக்கலாம்.",
+      smartInsight2: "காலாண்டு கூட்டு வட்டி வளர்ச்சிக்கு சிறந்தது.",
+      smartInsight3: "SBI/HDFC உடன் ஒப்பிட்டு நம்பகத்தன்மை மற்றும் வருமானம் பாருங்கள்.",
     },
     bhojpuri: {
       title: "FD कैलकुलेटर",
@@ -195,6 +229,12 @@ export function CalculatorToolPage() {
       visualHint: "जल्दी तुलना खातिर मोड बदलीं।",
       maturityEstimate: "मैच्योरिटी अनुमान",
       principalVsInterest: "मूलधन बनाम ब्याज बंटवारा",
+      effectiveMonthlyGain: "प्रभावी मासिक लाभ",
+      smartInsights: "स्मार्ट इनसाइट्स",
+      trustLine: "ई रेट अनुमानित बा आ लाइव बैंक रेट से अलग हो सकेला।",
+      smartInsight1: "लमहर अवधि में कुल रिटर्न बढ़ सकेला।",
+      smartInsight2: "तिमाही कंपाउंडिंग ग्रोथ खातिर बढ़िया होला।",
+      smartInsight3: "SBI/HDFC से तुलना कर के भरोसा आ रिटर्न दोनो देखीं।",
     },
   });
   const [principal, setPrincipal] = useState(100000);
@@ -252,7 +292,7 @@ export function CalculatorToolPage() {
 
   return (
     <div className="h-full min-h-0 overflow-y-auto bg-background">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 pb-6 pt-8 sm:px-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 pb-6 pt-8 sm:px-6 lg:max-w-6xl">
         <Card className="border border-border bg-card/80">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -325,6 +365,21 @@ export function CalculatorToolPage() {
                 onChange={(event) => setRate(Number(event.target.value) || 0)}
                 className="h-8 w-full rounded-md border border-input bg-input/20 px-2 text-xs"
               />
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {RATE_PRESETS.map((preset) => (
+                  <button
+                    key={`rate-${preset}`}
+                    onClick={() => setRate(preset)}
+                    className={`rounded-full border px-2 py-0.5 text-[0.6875rem] transition-colors ${
+                      rate === preset
+                        ? "border-primary/40 bg-primary/10 text-primary"
+                        : "border-border bg-background/70 text-muted-foreground"
+                    }`}
+                  >
+                    {preset}%
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>
@@ -406,9 +461,9 @@ export function CalculatorToolPage() {
               <p className="mb-1 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
                 {text.smartInsights}
               </p>
-              <p>Extending tenure can increase total returns if rate stays similar.</p>
-              <p>Quarterly compounding generally beats simple payout for growth goals.</p>
-              <p>Compare with SBI/HDFC options to balance trust and return.</p>
+              <p>{text.smartInsight1}</p>
+              <p>{text.smartInsight2}</p>
+              <p>{text.smartInsight3}</p>
             </div>
           </CardContent>
           <CardFooter className="flex flex-wrap gap-2 pt-0">

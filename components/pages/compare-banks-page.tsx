@@ -113,6 +113,16 @@ export function CompareBanksPage() {
       safetyPerception: "Safety Perception",
       recommendedFor: "Recommended For",
       insightTitle: "Quick Insights",
+      penaltyMayApply: "Penalty may apply",
+      seniorExtra: "+0.25% to +0.75% extra",
+      safetyFirst: "Safety-first users",
+      yieldSeekers: "Higher-yield seekers",
+      govLabel: "Government",
+      sfbLabel: "Small Finance",
+      bankLabel: "Bank",
+      leadsBy: "leads by",
+      forMonths: "for",
+      smallDiffNote: "Difference across top options is often small below Rs 1 lakh; compare safety too.",
     },
     hindi: {
       title: "बैंक तुलना",
@@ -138,6 +148,23 @@ export function CompareBanksPage() {
       compareAmount: "तुलना राशि",
       compareTenure: "तुलना अवधि",
       maturityAtTenure: "चयनित अवधि पर मैच्योरिटी",
+      maturityValue: "मैच्योरिटी राशि",
+      bankType: "बैंक प्रकार",
+      earlyWithdrawal: "जल्द निकासी",
+      seniorBenefit: "वरिष्ठ नागरिक लाभ",
+      safetyPerception: "सुरक्षा धारणा",
+      recommendedFor: "किसके लिए अच्छा",
+      insightTitle: "त्वरित जानकारी",
+      penaltyMayApply: "जुर्माना लग सकता है",
+      seniorExtra: "+0.25% से +0.75% अतिरिक्त",
+      safetyFirst: "सुरक्षा-प्रथम उपयोगकर्ता",
+      yieldSeekers: "अधिक रिटर्न चाहने वाले",
+      govLabel: "सरकारी",
+      sfbLabel: "स्मॉल फाइनेंस",
+      bankLabel: "बैंक",
+      leadsBy: "आगे है",
+      forMonths: "महीनों के लिए",
+      smallDiffNote: "Rs 1 लाख से नीचे अंतर कम होता है; सुरक्षा भी तुलना करें।",
     },
     hinglish: {
       title: "Compare Banks",
@@ -163,6 +190,23 @@ export function CompareBanksPage() {
       compareAmount: "Compare amount",
       compareTenure: "Compare tenure",
       maturityAtTenure: "Selected tenure par maturity",
+      maturityValue: "Maturity Value",
+      bankType: "Bank Type",
+      earlyWithdrawal: "Early Withdrawal",
+      seniorBenefit: "Senior Citizen Benefit",
+      safetyPerception: "Safety Perception",
+      recommendedFor: "Recommended For",
+      insightTitle: "Quick Insights",
+      penaltyMayApply: "Penalty lag sakta hai",
+      seniorExtra: "+0.25% se +0.75% extra",
+      safetyFirst: "Safety-first users",
+      yieldSeekers: "Higher-yield seekers",
+      govLabel: "Government",
+      sfbLabel: "Small Finance",
+      bankLabel: "Bank",
+      leadsBy: "leads by",
+      forMonths: "for",
+      smallDiffNote: "Rs 1 lakh se niche difference kam hota hai; safety bhi compare karo.",
     },
     marathi: {
       title: "बँक तुलना",
@@ -431,7 +475,7 @@ export function CompareBanksPage() {
 
   return (
     <div className="h-full min-h-0 overflow-y-auto bg-background">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pb-6 pt-8 sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pb-6 pt-8 sm:px-6 lg:max-w-7xl">
         <Card className="border border-border bg-card/80">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -528,12 +572,12 @@ export function CompareBanksPage() {
               {scenarioRows[0] && scenarioRows[1] ? (
                 <>
                   <p>
-                    {scenarioRows[0].bank} leads by Rs{" "}
+                    {scenarioRows[0].bank} {text.leadsBy} Rs{" "}
                     {(scenarioRows[0].maturity - scenarioRows[1].maturity).toLocaleString("en-IN")}{" "}
-                    for {scenarioTenure} months.
+                    {text.forMonths} {scenarioTenure} {text.months}.
                   </p>
                   <p>
-                    Difference across top options is often small below Rs 1 lakh; compare safety too.
+                    {text.smallDiffNote}
                   </p>
                 </>
               ) : null}
@@ -605,10 +649,10 @@ export function CompareBanksPage() {
                   {summaries.map((summary) => (
                     <td key={`${summary.bank}-type`} className="px-3 py-2 text-foreground">
                       {summary.bank.includes("Post Office")
-                        ? "Government"
+                        ? text.govLabel
                         : summary.bank.includes("Small Finance")
-                          ? "Small Finance"
-                          : "Bank"}
+                          ? text.sfbLabel
+                          : text.bankLabel}
                     </td>
                   ))}
                 </tr>
@@ -616,7 +660,7 @@ export function CompareBanksPage() {
                   <td className="px-3 py-2 text-muted-foreground">{text.earlyWithdrawal}</td>
                   {summaries.map((summary) => (
                     <td key={`${summary.bank}-withdrawal`} className="px-3 py-2 text-foreground">
-                      Penalty may apply
+                      {text.penaltyMayApply}
                     </td>
                   ))}
                 </tr>
@@ -624,7 +668,7 @@ export function CompareBanksPage() {
                   <td className="px-3 py-2 text-muted-foreground">{text.seniorBenefit}</td>
                   {summaries.map((summary) => (
                     <td key={`${summary.bank}-senior`} className="px-3 py-2 text-foreground">
-                      Usually +0.25% to +0.75%
+                      {text.seniorExtra}
                     </td>
                   ))}
                 </tr>
@@ -641,8 +685,8 @@ export function CompareBanksPage() {
                   {summaries.map((summary) => (
                     <td key={`${summary.bank}-for`} className="px-3 py-2 text-foreground">
                       {summary.safety === "High" || summary.safety === "Very High"
-                        ? "Safety-first users"
-                        : "Higher-yield seekers"}
+                        ? text.safetyFirst
+                        : text.yieldSeekers}
                     </td>
                   ))}
                 </tr>

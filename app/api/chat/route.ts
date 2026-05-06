@@ -8,6 +8,7 @@ import {
   extractBankFromText,
   extractTenureFromText,
   isBookingIntentMessage,
+  isComparisonIntentMessage,
   type BookingLanguage,
 } from "@/lib/fd-booking-flow";
 import { detectMessageLanguage } from "@/lib/language-detection";
@@ -199,9 +200,12 @@ const RECOMMENDATION_PROMPT = `
 ━━━ FD RECOMMENDATION MODE ━━━
 
 You have REAL FD DATA below. Use it to populate the "recommendations" array in your JSON.
-- Include top 2-3 options as objects with bank, rate, tenure, maturity, category, reason.
-- Explain trade-offs in "points" (safety vs returns).
-- Always mention "ye approximate rates hain".`;
+When the user asks to compare banks for a specific amount and tenure:
+- Provide a concise comparison between the banks that fit the criteria.
+- Clearly recommend the best result based on returns or safety.
+- Explain the trade-offs (e.g., safety vs returns) briefly in "points".
+- CRITICAL: Output EXACTLY in the user's input language (The golden rule: input language = Output Language).
+- Always mention "ye approximate rates hain" (translated to the output language).`;
 
 const RETRIEVAL_TRANSLATION_PROMPT = `Translate the user message into concise English for retrieval.
 Rules:
@@ -523,7 +527,9 @@ function resolveIntent(message: string, extracted: ExtractedIntent): ExtractedIn
 
   let intent = extracted.intent;
 
-  if (isBookingIntentMessage(message)) {
+  if (isComparisonIntentMessage(message)) {
+    intent = "RECOMMEND_FD";
+  } else if (isBookingIntentMessage(message)) {
     intent = "BOOK_FD";
   } else if (intent === "GENERAL" && recommendationByText) {
     intent = "RECOMMEND_FD";

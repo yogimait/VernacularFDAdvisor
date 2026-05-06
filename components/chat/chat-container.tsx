@@ -1,10 +1,18 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { RiCloseLine } from "@remixicon/react";
+import {
+  RiCloseLine,
+  RiChat3Line,
+  RiMoneyDollarCircleLine,
+  RiExchangeLine,
+  RiCalculatorLine,
+  RiTimeLine,
+} from "@remixicon/react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { ChatMessages } from "./chat-messages";
 import { ChatInput } from "./chat-input";
+import { SmartInsightsSidebar } from "./smart-insights-sidebar";
 import { useLanguage, type Language } from "@/hooks/use-language";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { pickLocalized } from "@/lib/i18n";
@@ -23,6 +31,7 @@ import {
   extractTenureFromText,
   getBookingCommandLabel,
   isBookingRelatedMessage,
+  isComparisonIntentMessage,
   type BookingLanguage,
   type FDBookingActionCommand,
 } from "@/lib/fd-booking-flow";
@@ -292,7 +301,45 @@ export function ChatContainer() {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
-  const [responseMode, setResponseMode] = useState<"simple" | "detailed">("simple");
+  const [responseMode, setResponseMode] = useState<"detailed" | "simple">("detailed");
+
+  // Resizable sidebar state
+  const [sidebarWidth, setSidebarWidth] = useState(320);
+  const isResizing = useRef(false);
+
+  const startResizing = useCallback((e: React.MouseEvent) => {
+    isResizing.current = true;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, []);
+
+  const stopResizing = useCallback(() => {
+    isResizing.current = false;
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  }, []);
+
+  const resize = useCallback((e: MouseEvent) => {
+    if (isResizing.current) {
+      setSidebarWidth((prev) => {
+        // e.movementX is negative when moving left (expanding right sidebar)
+        const newWidth = prev - e.movementX;
+        if (newWidth < 260) return 260; // Min width
+        if (newWidth > 500) return 500; // Max width
+        return newWidth;
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("mousemove", resize);
+    window.addEventListener("mouseup", stopResizing);
+    return () => {
+      window.removeEventListener("mousemove", resize);
+      window.removeEventListener("mouseup", stopResizing);
+    };
+  }, [resize, stopResizing]);
+
   const [isVoiceModeOn, setIsVoiceModeOn] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [voiceTranscript, setVoiceTranscript] = useState<string | null>(null);
@@ -904,9 +951,11 @@ export function ChatContainer() {
       const amountUpdate = extractAmountFromText(trimmed);
       const tenureUpdate = extractTenureFromText(trimmed);
       const bankUpdate = extractBankFromText(trimmed);
+      const isComparison = isComparisonIntentMessage(trimmed);
 
       if (
         currentBookingState &&
+        !isComparison &&
         (amountUpdate !== null || tenureUpdate !== null || bankUpdate !== null)
       ) {
         const updatedState = applyBookingTextUpdates(currentBookingState, {
@@ -947,9 +996,6 @@ export function ChatContainer() {
       const updatedMessages = [...messages, userMessage];
       setMessages(updatedMessages);
       setInputValue("");
-
-      const shouldPromptResume =
-        !!currentBookingState && !isBookingRelatedMessage(trimmed);
 
       if (!isOnline) {
         const cachedRecommendation = readLatestCachedRecommendation();
@@ -1021,24 +1067,6 @@ export function ChatContainer() {
           data.structured.bookingFlow?.bookingState
         ) {
           setBookingState(data.structured.bookingFlow.bookingState);
-        } else if (currentBookingState && shouldPromptResume) {
-          const reminderStructured = buildBookingStructuredResponse(
-            currentBookingState,
-            { reminder: true, language: inputBookingLanguage }
-          );
-
-          const reminderMessage: Message = {
-            id: generateId(),
-            role: "assistant",
-            content:
-              reminderStructured.explanation ||
-              text.resumeFallback,
-            timestamp: new Date(),
-            structured: reminderStructured,
-          };
-
-          setMessages((prev) => [...prev, reminderMessage]);
-          maybeAutoPlay(reminderMessage);
         }
       } catch (error) {
         console.error("Chat error:", error);
@@ -1422,118 +1450,176 @@ export function ChatContainer() {
   }, [bookingState]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background">
-      {isVoiceModeOn ? (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="relative flex w-[min(90vw,520px)] flex-col items-center gap-4 rounded-3xl border border-white/10 bg-white/5 px-6 py-6 text-center shadow-2xl">
+    <div className="flex h-full min-h-0 bg-background">
+      {/* ─── Main Chat Column ─── */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {isVoiceModeOn ? (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="relative flex w-[min(90vw,520px)] flex-col items-center gap-4 rounded-3xl border border-white/10 bg-white/5 px-6 py-6 text-center shadow-2xl">
+              <button
+                type="button"
+                onClick={toggleVoiceMode}
+                aria-label={voiceText.closeVoice}
+                className="absolute right-3 top-3 flex size-7 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white"
+              >
+                <RiCloseLine className="size-4" />
+              </button>
+              <div className="flex items-end gap-2">
+                {[0, 1, 2, 3, 4].map((index) => (
+                  <span
+                    key={`voice-overlay-wave-${index}`}
+                    className={`h-12 w-3 rounded-full ${voiceWaveTone} ${voiceWaveAnimation}`}
+                    style={{ animationDelay: `${index * 0.12}s` }}
+                  />
+                ))}
+              </div>
+              <p className="text-sm font-semibold text-white/90">{voiceStatusLabel}</p>
+              {voiceTranscript ? (
+                <p className="text-[0.8125rem] text-white/80">
+                  {voiceText.youSaid}: {voiceTranscript}
+                </p>
+              ) : null}
+              {voiceReply ? (
+                <p className="text-[0.8125rem] text-white/70">
+                  {voiceText.assistantSaid}: {voiceReply}
+                </p>
+              ) : null}
+              {voiceError ? (
+                <p className="text-[0.75rem] text-red-200">{voiceError}</p>
+              ) : null}
+              {!isVoiceSupported ? (
+                <p className="text-[0.75rem] text-white/60">
+                  {voiceText.unsupported}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+        {!isOnline ? (
+          <div className="shrink-0 border-b border-amber-400/30 bg-amber-500/10 px-4 py-2 text-[0.75rem] font-medium text-amber-800 dark:text-amber-200 sm:px-6">
+            {offlineText.banner}
+          </div>
+        ) : null}
+        <div className="shrink-0 border-b border-border bg-card/40 px-4 py-2 sm:px-6">
+          <div className="flex items-center justify-end md:hidden">
             <button
               type="button"
-              onClick={toggleVoiceMode}
-              aria-label={voiceText.closeVoice}
-              className="absolute right-3 top-3 flex size-7 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white"
+              onClick={() => setShowModeActions((prev) => !prev)}
+              className="text-[0.6875rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              <RiCloseLine className="size-4" />
+              {showModeActions ? text.modeToggle.hide : text.modeToggle.show}
             </button>
-            <div className="flex items-end gap-2">
-              {[0, 1, 2, 3, 4].map((index) => (
-                <span
-                  key={`voice-overlay-wave-${index}`}
-                  className={`h-12 w-3 rounded-full ${voiceWaveTone} ${voiceWaveAnimation}`}
-                  style={{ animationDelay: `${index * 0.12}s` }}
-                />
+          </div>
+          <div className="md:flex md:items-center md:justify-between md:gap-4">
+            <div
+              className={`${
+                showModeActions
+                  ? "mt-2 grid grid-cols-2 gap-2"
+                  : "hidden"
+              } md:mt-0 md:flex md:items-center md:gap-1.5 md:overflow-x-auto`}
+              role="tablist"
+              aria-label="Chat mode selection"
+            >
+              {CHAT_MODES.map((mode) => {
+                const ModeIcon = {
+                  ask: RiChat3Line,
+                  open: RiMoneyDollarCircleLine,
+                  compare: RiExchangeLine,
+                  calculator: RiCalculatorLine,
+                }[mode.key];
+                return (
+                  <button
+                    key={mode.key}
+                    type="button"
+                    onClick={() => handleModeSelect(mode.key)}
+                    role="tab"
+                    aria-selected={activeMode === mode.key}
+                    className={`flex w-full items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 text-center text-[0.6875rem] font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 md:w-auto md:px-3 md:py-1 ${
+                      activeMode === mode.key
+                        ? "border-primary/70 bg-primary text-primary-foreground"
+                        : "border-border bg-background/70 text-foreground/90 hover:border-primary/30 hover:text-foreground"
+                    }`}
+                  >
+                    <ModeIcon className="hidden size-3.5 md:inline-block" />
+                    {text.modeLabels[mode.key]}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Desktop-only response mode toggle */}
+            <div className="hidden md:inline-flex md:shrink-0 md:items-center md:rounded-full md:border md:border-border md:bg-background/60 md:p-0.5">
+              {(["detailed", "simple"] as const).map((mode) => (
+                <button
+                  key={`desktop-response-mode-${mode}`}
+                  type="button"
+                  onClick={() => handleResponseModeChange(mode)}
+                  className={`rounded-full px-2.5 py-1 text-[0.6875rem] font-medium transition-colors ${
+                    responseMode === mode
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {mode === "simple"
+                    ? pickLocalized(language, {
+                        english: "Simple", hindi: "सरल", hinglish: "Simple",
+                        marathi: "सोपे", gujarati: "સરળ", tamil: "எளியது", bhojpuri: "सरल",
+                      })
+                    : pickLocalized(language, {
+                        english: "Detailed", hindi: "विस्तृत", hinglish: "Detailed",
+                        marathi: "तपशीलवार", gujarati: "વિગતવાર", tamil: "விரிவாக", bhojpuri: "विस्तार से",
+                      })}
+                </button>
               ))}
             </div>
-            <p className="text-sm font-semibold text-white/90">{voiceStatusLabel}</p>
-            {voiceTranscript ? (
-              <p className="text-[0.8125rem] text-white/80">
-                {voiceText.youSaid}: {voiceTranscript}
-              </p>
-            ) : null}
-            {voiceReply ? (
-              <p className="text-[0.8125rem] text-white/70">
-                {voiceText.assistantSaid}: {voiceReply}
-              </p>
-            ) : null}
-            {voiceError ? (
-              <p className="text-[0.75rem] text-red-200">{voiceError}</p>
-            ) : null}
-            {!isVoiceSupported ? (
-              <p className="text-[0.75rem] text-white/60">
-                {voiceText.unsupported}
-              </p>
-            ) : null}
           </div>
         </div>
-      ) : null}
-      {!isOnline ? (
-        <div className="shrink-0 border-b border-amber-400/30 bg-amber-500/10 px-4 py-2 text-[0.75rem] font-medium text-amber-800 dark:text-amber-200 sm:px-6">
-          {offlineText.banner}
-        </div>
-      ) : null}
-      <div className="shrink-0 border-b border-border bg-card/40 px-4 py-2 sm:px-6">
-        <div className="flex items-center justify-end md:hidden">
-          <button
-            type="button"
-            onClick={() => setShowModeActions((prev) => !prev)}
-            className="text-[0.6875rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {showModeActions ? text.modeToggle.hide : text.modeToggle.show}
-          </button>
-        </div>
+        <ChatMessages
+          messages={messages}
+          isLoading={isLoading}
+          onSuggestionClick={handleSuggestionClick}
+          onActionClick={handleActionClick}
+        />
+        <ChatInput
+          value={inputValue}
+          onChange={setInputValue}
+          onSend={handleSend}
+          onVoiceResult={handleVoiceResult}
+          responseMode={responseMode}
+          onResponseModeChange={handleResponseModeChange}
+          onCalculatorOpen={() => setIsCalculatorOpen(true)}
+          isVoiceModeOn={isVoiceModeOn}
+          onVoiceModeToggle={toggleVoiceMode}
+          voiceModeLabel={voiceText.useVoice}
+          voiceModeCloseLabel={voiceText.closeVoice}
+          voiceModeAriaLabel={voiceText.toggle}
+          isLoading={isLoading}
+          isOffline={!isOnline}
+          hasMessages={messages.length > 0}
+        />
+        <FDCalculatorModal
+          isOpen={isCalculatorOpen}
+          onClose={() => setIsCalculatorOpen(false)}
+        />
+      </div>
+
+      {/* ─── Desktop Smart Insights Sidebar with Resizer ─── */}
+      <div 
+        className="hidden lg:flex shrink-0 relative"
+        style={{ width: sidebarWidth }}
+      >
+        {/* Drag Handle */}
         <div
-          className={`${
-            showModeActions
-              ? "mt-2 grid grid-cols-2 gap-2"
-              : "hidden"
-          } md:mt-0 md:flex md:items-center md:gap-1.5 md:overflow-x-auto`}
-          role="tablist"
-          aria-label="Chat mode selection"
-        >
-          {CHAT_MODES.map((mode) => (
-            <button
-              key={mode.key}
-              type="button"
-              onClick={() => handleModeSelect(mode.key)}
-              role="tab"
-              aria-selected={activeMode === mode.key}
-              className={`w-full rounded-full border px-3 py-1.5 text-center text-[0.6875rem] font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 md:w-auto md:px-3 md:py-1 ${
-                activeMode === mode.key
-                  ? "border-primary/70 bg-primary text-primary-foreground"
-                  : "border-border bg-background/70 text-foreground/90 hover:border-primary/30 hover:text-foreground"
-              }`}
-            >
-              {text.modeLabels[mode.key]}
-            </button>
-          ))}
+          onMouseDown={startResizing}
+          className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-10"
+        />
+        
+        <div className="flex-1 w-full overflow-hidden">
+          <SmartInsightsSidebar
+            onCalculatorOpen={() => setIsCalculatorOpen(true)}
+            onSuggestionClick={handleSuggestionClick}
+          />
         </div>
       </div>
-      <ChatMessages
-        messages={messages}
-        isLoading={isLoading}
-        onSuggestionClick={handleSuggestionClick}
-        onActionClick={handleActionClick}
-      />
-      <ChatInput
-        value={inputValue}
-        onChange={setInputValue}
-        onSend={handleSend}
-        onVoiceResult={handleVoiceResult}
-        responseMode={responseMode}
-        onResponseModeChange={handleResponseModeChange}
-        onCalculatorOpen={() => setIsCalculatorOpen(true)}
-        isVoiceModeOn={isVoiceModeOn}
-        onVoiceModeToggle={toggleVoiceMode}
-        voiceModeLabel={voiceText.useVoice}
-        voiceModeCloseLabel={voiceText.closeVoice}
-        voiceModeAriaLabel={voiceText.toggle}
-        isLoading={isLoading}
-        isOffline={!isOnline}
-        hasMessages={messages.length > 0}
-      />
-      <FDCalculatorModal
-        isOpen={isCalculatorOpen}
-        onClose={() => setIsCalculatorOpen(false)}
-      />
     </div>
   );
 }

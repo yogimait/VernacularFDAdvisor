@@ -13,6 +13,7 @@ import {
   RiMoneyDollarCircleLine,
   RiLightbulbLine,
   RiBarChartBoxLine,
+  RiTimeLine,
 } from "@remixicon/react";
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { useLanguage } from "@/hooks/use-language";
@@ -397,7 +398,7 @@ export function ChatInput({
 
   return (
     <div className="shrink-0 border-t border-border bg-card/60 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:px-6">
-      <div className="mx-auto mb-2 grid max-w-3xl grid-cols-[1fr_auto_1fr] items-center gap-2">
+      <div className="mx-auto mb-2 grid max-w-3xl grid-cols-[1fr_auto_1fr] items-center gap-2 md:hidden">
         <p className="text-[0.6875rem] font-medium text-muted-foreground">
           {modeText.responseStyle}
         </p>
@@ -543,6 +544,41 @@ export function ChatInput({
           <RiSendPlaneFill className="size-4" />
         </Button>
       </div>
+
+      {/* Desktop footer actions */}
+      <div className="mx-auto mt-2 hidden max-w-3xl items-center justify-center gap-6 md:flex">
+        <button
+          type="button"
+          onClick={onVoiceModeToggle}
+          className="inline-flex items-center gap-1.5 text-[0.6875rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <RiMicLine className="size-3.5" />
+          {isVoiceModeOn ? voiceModeCloseLabel : voiceModeLabel}
+        </button>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 text-[0.6875rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <RiTimeLine className="size-3.5" />
+          {pickLocalized(language, {
+            english: "Recent chats", hindi: "हाल की चैट", hinglish: "Recent chats",
+            marathi: "अलीकडील चॅट", gujarati: "તાજેતરની ચેટ", tamil: "இருச்சத் அரட்டைகள்", bhojpuri: "हाल क चैट",
+          })}
+        </button>
+      </div>
+
+      {/* Disclaimer */}
+      <p className="mx-auto mt-1.5 hidden max-w-3xl text-center text-[0.5625rem] text-muted-foreground/50 md:block">
+        {pickLocalized(language, {
+          english: "FD Advisor can make mistakes. Please verify important information.",
+          hindi: "FD Advisor से गलती हो सकती है। कृपया महत्वपूर्ण जानकारी की पुष्टि करें।",
+          hinglish: "FD Advisor se galti ho sakti hai. Important info verify kar lein.",
+          marathi: "FD Advisor चुका करू शकतो. कृपया महत्त्वाची माहिती पडताळून पहा.",
+          gujarati: "FD Advisor થી ભૂલ થઈ શકે છે. કૃપા કરી મહત્વપૂર્ણ માહિતી પરખી લો.",
+          tamil: "FD Advisor தவறு செய்யலாம். முக்கிய தகவல்களை சரிபார்க்கவும்.",
+          bhojpuri: "FD Advisor से गलती हो सके ला। महत्वपूर्ण जानकारी जरूर खुद जाँच लीं।",
+        })}
+      </p>
     </div>
   );
 }

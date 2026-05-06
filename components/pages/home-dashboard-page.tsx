@@ -7,9 +7,14 @@ import {
   RiCalculatorLine,
   RiChat3Line,
   RiCompass3Line,
+  RiLineChartLine,
   RiPlayCircleLine,
   RiRobot2Line,
+  RiShieldCheckLine,
+  RiStarLine,
 } from "@remixicon/react";
+import { FD_DATA } from "@/lib/fd-data";
+import { calculateFD } from "@/lib/fd-calculator";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -516,7 +521,7 @@ export function HomeDashboardPage() {
 
   return (
     <div className="h-full min-h-0 overflow-y-auto bg-background">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-5 sm:px-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-5 sm:px-6 lg:max-w-6xl">
         <Card className="border border-border bg-card/80">
           <CardHeader>
             <div className="mb-1 flex items-center gap-2">
@@ -539,7 +544,7 @@ export function HomeDashboardPage() {
           </CardFooter>
         </Card>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
           {text.primaryActions.map((action) => (
             <Card key={action.title} className="border border-border bg-card/70">
               <CardHeader>
@@ -569,6 +574,9 @@ export function HomeDashboardPage() {
           ))}
         </div>
 
+        {/* Desktop 2-column: suggestions + top picks */}
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr,1fr]">
+
         <Card className="border border-border bg-card/70">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm">
@@ -589,6 +597,54 @@ export function HomeDashboardPage() {
             ))}
           </CardContent>
         </Card>
+
+        {/* Today's Top Picks - dynamic from FD_DATA */}
+        <Card className="border border-border bg-card/70">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <RiStarLine className="size-4 text-primary" />
+              {pickLocalized(language, {
+                english: "Today's Top Rates",
+                hindi: "आज की टॉप दरें",
+                hinglish: "Aaj ki Top Rates",
+                marathi: "आजचे टॉप दर",
+                gujarati: "આજના ટોચના દર",
+                tamil: "இன்றைய சிறந்த விகிதங்கள்",
+                bhojpuri: "आज के टॉप रेट",
+              })}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {FD_DATA.filter(fd => fd.tenure === 12)
+              .sort((a, b) => b.rate - a.rate)
+              .slice(0, 3)
+              .map((fd) => {
+                const proj = calculateFD(100000, fd.rate, fd.tenure, "quarterly");
+                return (
+                  <div
+                    key={`${fd.bank}-${fd.tenure}`}
+                    className="flex items-center justify-between rounded-md border border-border bg-background/70 px-3 py-2 transition-colors hover:border-primary/30"
+                  >
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">{fd.bank}</p>
+                      <p className="text-[0.625rem] text-muted-foreground">
+                        {fd.tenure}m • Rs {proj.maturityAmount.toLocaleString("en-IN")} on Rs 1L
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Badge className="bg-primary/10 text-primary border-primary/30">{fd.rate}%</Badge>
+                      <Badge variant="outline" className="gap-0.5 text-[0.5625rem]">
+                        <RiShieldCheckLine className="size-2.5" />
+                        DICGC
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              })}
+          </CardContent>
+        </Card>
+        {/* end 2-col grid */}
+        </div>
 
         {bookingState && (
           <Card className="border border-primary/25 bg-primary/5">
