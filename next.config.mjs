@@ -9,10 +9,28 @@ const withPWA = withPWAInit({
 	disable: isDev,
 	runtimeCaching: [
 		{
+			// App Router RSC payloads (prefetch + navigation) for offline transitions.
+			urlPattern: ({ request, sameOrigin }) =>
+				sameOrigin &&
+				(request.headers.get("RSC") === "1" ||
+					request.headers.get("next-router-prefetch") === "1"),
+			handler: "StaleWhileRevalidate",
+			options: {
+				cacheName: "rsc-cache",
+				expiration: {
+					maxEntries: 128,
+					maxAgeSeconds: 7 * 24 * 60 * 60,
+				},
+				cacheableResponse: {
+					statuses: [0, 200],
+				},
+			},
+		},
+		{
 			// Static app shell and route documents for fast offline loads.
 			urlPattern: ({ request, sameOrigin }) =>
 				sameOrigin && request.mode === "navigate",
-			handler: "CacheFirst",
+			handler: "StaleWhileRevalidate",
 			options: {
 				cacheName: "pages-cache",
 				expiration: {

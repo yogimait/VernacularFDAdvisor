@@ -23,6 +23,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LANGUAGE_STORAGE_KEY, useLanguage, type Language } from "@/hooks/use-language";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 import { LANGUAGE_LABELS, LANGUAGE_SEQUENCE, pickLocalized, type LocalizedValues } from "@/lib/i18n";
 import {
   applyFontScale,
@@ -146,6 +147,7 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { language, setLanguage } = useLanguage();
+  const isOnline = useOnlineStatus();
   const showLanguageOnboarding = useSyncExternalStore(
     () => () => {},
     () => {
@@ -200,6 +202,16 @@ export function AppShell({ children }: AppShellProps) {
       open: "मेनू खोलीं",
       close: "मेनू बंद करीं",
     },
+  });
+
+  const offlineBannerText = pickLocalized(language, {
+    english: "Offline mode enabled. Using cached tools and guidance.",
+    hindi: "ऑफलाइन मोड चालू है। कैश्ड टूल्स और गाइडेंस उपलब्ध हैं।",
+    hinglish: "Offline mode on hai. Cached tools aur guidance available hain.",
+    marathi: "ऑफलाइन मोड सुरू आहे. कॅश्ड टूल्स आणि मार्गदर्शन उपलब्ध आहे.",
+    gujarati: "ઓફલાઇન મોડ ચાલુ છે. કેશ્ડ ટૂલ્સ અને માર્ગદર્શન ઉપલબ્ધ છે.",
+    tamil: "ஆஃப்லைன் முறை செயலில் உள்ளது. கேஷ் செய்யப்பட்ட கருவிகள் மற்றும் வழிகாட்டல் கிடைக்கிறது.",
+    bhojpuri: "ऑफलाइन मोड चालू बा। कैश्ड टूल्स आ गाइडेंस उपलब्ध बा।",
   });
 
   const onboardingText = pickLocalized(selectedOnboardingLanguage, {
@@ -257,6 +269,26 @@ export function AppShell({ children }: AppShellProps) {
     setMobileMenuOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (!isOnline) {
+      return;
+    }
+
+    const routesToPrefetch = [
+      "/",
+      "/chat",
+      "/calculator",
+      "/compare",
+      "/explore",
+      "/open-fd",
+      "/profile",
+    ];
+
+    routesToPrefetch.forEach((route) => {
+      router.prefetch(route);
+    });
+  }, [isOnline, router]);
+
   const completeLanguageOnboarding = () => {
     setLanguage(selectedOnboardingLanguage);
 
@@ -286,6 +318,11 @@ export function AppShell({ children }: AppShellProps) {
       <main className="min-w-0 flex-1 overflow-hidden">
         <div className="flex h-full min-h-0 flex-col bg-background">
           <ChatHeader language={language} onLanguageChange={setLanguage} />
+          {!isOnline && !isChatPage ? (
+            <div className="shrink-0 border-b border-amber-400/30 bg-amber-500/10 px-4 py-2 text-[0.75rem] font-medium text-amber-800 dark:text-amber-200 sm:px-6">
+              {offlineBannerText}
+            </div>
+          ) : null}
           <div className="min-h-0 flex-1 overflow-hidden pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
             {children}
           </div>
