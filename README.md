@@ -1,72 +1,318 @@
 # Vernacular FD Advisor
 
-Vernacular FD Advisor is a multilingual, AI-powered web app that helps people in India understand, compare, and plan Fixed Deposits (FDs) with confidence.
+A multilingual AI-powered financial guidance platform designed to help Indian users understand, compare, and plan Fixed Deposits (FDs) using trusted financial knowledge.
 
-It combines conversational guidance, FD discovery tools, bank comparison, and return simulation into one beginner-friendly experience designed for real-world decision making.
+Built for the **Hack to the Future** hackathon.
 
-## Description
+---
 
-Fixed Deposit choices can be confusing, especially for first-time savers and users who prefer regional languages. This app simplifies that journey with:
+# Problem
 
-- Guided AI conversations in everyday language
-- Context-aware recommendations based on amount and tenure
-- Visual tools for comparing outcomes before choosing a bank
-- Step-based FD opening guidance
-- PWA support for app-like and offline-ready usage
+Fixed Deposit products are widely used in India, but understanding them remains difficult for many users, especially first-time savers and users more comfortable in regional languages than English.
 
-## Core Features
+Current financial information is often:
 
-- **Multilingual financial assistant:** Supports English, Hindi, Hinglish, Marathi, Gujarati, Tamil, and Bhojpuri across the product experience.
-- **AI chat with practical guidance:** Conversational assistant focused on FD basics, rate comparison, safety, taxation context, and next-step guidance.
-- **Structured recommendation cards:** Returns actionable FD recommendations with explanation, key points, and clear next actions.
-- **Guided FD booking flow:** Step-by-step flow to move from intent to FD setup details (bank, amount, tenure, type) with progress and continuity.
-- **FD explorer with smart filters:** Filter and sort FD options by amount, duration, risk profile, and bank type, with quick handoff to AI recommendation.
-- **Bank comparison workspace:** Compare selected banks on rate, minimum amount, safety indicators, and maturity simulation.
-- **Built-in FD calculator:** Calculate maturity and earned interest using configurable principal, tenure, rate, and compounding frequency.
-- **Voice input support:** Record voice, transcribe, and continue the conversation through natural speech input.
-- **Offline-ready behavior:** When internet is unavailable, the app can continue with cached recommendations and local guidance.
-- **Installable PWA:** Install on supported devices for a faster app-like experience.
+- fragmented across multiple websites
+- filled with complex banking and regulatory jargon
+- difficult to compare in one place
+- inaccessible for vernacular-first users
 
-## Use Cases
+Generic AI assistants are also unreliable in finance because they can hallucinate or provide non-verifiable advice.
 
-- **First-time FD investor:** Learn FD basics, understand trade-offs, and get simple next steps.
-- **Return-focused saver:** Compare available options quickly and identify higher-yield choices for a target tenure.
-- **Safety-first planner:** Prioritize stability-oriented options while still tracking expected returns.
-- **Regional language user:** Get explanations and guidance in a preferred language rather than only English.
-- **Decision simulation before bank visit:** Estimate maturity and compare outcomes before taking action in branch or net banking.
+The challenge was to build a system that provides **trusted, understandable, multilingual financial guidance** instead of generic chatbot responses.
 
-## Tech Stack
+---
 
-- Frontend: Next.js (App Router), React, TypeScript
-- UI: Tailwind CSS, Radix UI primitives, shadcn/ui patterns
-- AI Inference: Groq API (`openai/gpt-oss-120b`)
-- Voice Transcription: Groq Whisper (`whisper-large-v3-turbo`)
-- PWA: `next-pwa` with runtime caching
-- Theming: `next-themes`
+# Solution
 
-## How To Run Locally
+Vernacular FD Advisor is a **RAG-powered multilingual financial assistant** that helps users:
 
-### 1. Prerequisites
+- understand FD concepts in simple language
+- compare FD options across institutions
+- estimate maturity returns
+- receive source-backed financial guidance
+- move through a guided FD decision journey
+
+Instead of relying on generic LLM answers, the platform retrieves relevant financial knowledge from trusted sources such as RBI, SEBI, DICGC, and bank documentation before generating responses.
+
+---
+
+# Core Features
+
+## 1. Multilingual AI Financial Assistant
+
+Supports:
+
+- English
+- Hindi
+- Hinglish
+- Marathi
+- Gujarati
+- Tamil
+- Bhojpuri
+
+Users can ask natural questions such as:
+
+- FD me paisa safe hai kya?
+- Best FD for ₹50,000 for 1 year
+- Senior citizen FD options
+- FD pe tax lagta hai kya?
+
+The assistant provides:
+
+- grounded explanations
+- structured recommendations
+- source-backed responses
+- guided next steps
+
+---
+
+## 2. Guided FD Decision Flow
+
+The assistant goes beyond answering questions and helps users move toward action.
+
+Supports guided flows for:
+
+- choosing a bank
+- selecting amount
+- choosing tenure
+- understanding FD type
+- reviewing next steps
+
+---
+
+## 3. FD Explorer
+
+Interactive FD discovery interface with filtering by:
+
+- amount
+- tenure
+- institution type
+- risk preference
+
+Helps users quickly shortlist options.
+
+---
+
+## 4. Bank Comparison Workspace
+
+Compare multiple FD providers side-by-side using:
+
+- rates
+- maturity estimates
+- safety indicators
+- minimum deposit
+- recommendation context
+
+---
+
+## 5. FD Calculator
+
+Built-in return estimation with:
+
+- principal amount
+- tenure
+- interest rate
+- compounding frequency
+
+---
+
+## 6. Voice Input Support
+
+Users can speak queries using voice input, which are transcribed into chat for natural interaction.
+
+---
+
+## 7. Automated Knowledge Ingestion Pipeline
+
+Instead of manually updating documents, the project includes an automated ingestion architecture using **n8n**.
+
+Pipeline capabilities:
+
+- trusted source collection
+- document fetching
+- text cleaning
+- SHA256 hashing for change detection
+- duplicate prevention
+- ingestion into vector knowledge base
+
+---
+
+# Architecture Overview
+
+This project follows a **production-inspired RAG architecture**.
+
+### User Query Flow
+
+```text
+User Query
+   ↓
+Language Understanding
+   ↓
+Query Embedding
+   ↓
+Semantic Retrieval
+   ↓
+Relevant Financial Knowledge
+   ↓
+LLM Response Generation
+   ↓
+Structured Multilingual Answer
+```
+
+### Knowledge Pipeline
+
+```text
+Trusted Financial Sources
+(RBI / SEBI / DICGC / Banks)
+        ↓
+n8n Ingestion Pipeline
+        ↓
+Content Cleaning
+        ↓
+Hash-Based Change Detection
+        ↓
+Semantic Chunking
+        ↓
+Multilingual Embeddings
+        ↓
+Supabase pgvector Storage
+        ↓
+Retrieval Layer
+```
+
+---
+
+# Technical Decisions
+
+## Why RAG instead of generic AI?
+
+Financial systems require trust.
+
+RAG was chosen because it:
+
+- reduces hallucination risk
+- enables source-backed responses
+- allows knowledge updates without retraining
+- fits financial advisory use cases better than pure prompting
+
+---
+
+## Why multilingual embeddings?
+
+The target users ask questions in:
+
+- Hindi
+- Hinglish
+- mixed-language queries
+
+Standard English-only retrieval would fail here.
+
+So multilingual semantic retrieval was required.
+
+---
+
+## Why automated ingestion?
+
+Financial information changes over time.
+
+Manual knowledge updates are not scalable.
+
+Automated ingestion ensures:
+
+- fresher knowledge
+- lower maintenance
+- duplicate prevention
+- production readiness
+
+---
+
+# Tech Stack
+
+## Frontend
+
+- Next.js (App Router)
+- React
+- TypeScript
+
+## UI / Styling
+
+- Tailwind CSS
+- shadcn/ui
+- Radix UI
+
+## AI / LLM
+
+- Groq API
+- Model: `openai/gpt-oss-120b`
+
+## Speech
+
+- Groq Whisper
+- `whisper-large-v3-turbo`
+
+## RAG Stack
+
+- multilingual-e5-large embeddings
+- Supabase pgvector
+- custom retriever
+- semantic chunking pipeline
+
+## Automation
+
+- n8n
+
+## Deployment
+
+- Vercel
+
+---
+
+# How To Run Locally
+
+## Prerequisites
+
+Install:
 
 - Node.js 20+
 - npm
-- Groq API key
 
-### 2. Install dependencies
+---
+
+## Installation
 
 ```bash
-npm install
+npm i --legacy-peer-deps
 ```
 
-### 3. Configure environment variables
+---
 
-Create a `.env.local` file in the project root with:
+## Environment Variables
+
+Create:
+
+`.env.local`
+
+Add:
 
 ```env
-GROQ_API_KEY=your_groq_api_key_here
+GROQ_API_KEY=your_key_here
+
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_KEY=your_service_key
+
+NEXT_PUBLIC_SUPABASE_URL=your_public_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_public_anon_key
+
+HF_TOKEN=your_huggingface_token
+
+INGEST_TOKEN=your_ingestion_token
+INGEST_TRUSTED_SOURCES=comma_separated_trusted_domains
 ```
 
-### 4. Start development server
+---
+
+## Start Development Server
 
 ```bash
 npm run dev
@@ -74,34 +320,101 @@ npm run dev
 
 Open:
 
-`http://localhost:3000`
+```bash
+http://localhost:3000
+```
 
-## How To Use The App
+---
 
-1. Choose your preferred language when prompted.
-2. Start from the dashboard or directly open chat.
-3. Ask FD questions naturally (for example: best FD for amount/tenure, FD basics, safety, returns).
-4. Use Explore to filter options and shortlist candidates.
-5. Use Compare to evaluate multiple banks side by side.
-6. Use Calculator to test different principal, tenure, and rate scenarios.
-7. Use Open FD flow to move through a guided action path.
-8. (Optional) Install the app from browser prompt for a native-like experience.
+# Demo Flow
 
-## Available Scripts
+Recommended demo flow:
 
-- `npm run dev` - Run in development mode
-- `npm run build` - Create a production build
-- `npm start` - Start production server (after build)
-- `npm run lint` - Run ESLint
-- `npm run typecheck` - Run TypeScript type checks
-- `npm run format` - Format TypeScript files with Prettier
+1. Ask multilingual question:
 
-## Ingestion Endpoint
+```text
+FD me paisa safe hai kya?
+```
 
-For secure ingestion of structured banking documents into the knowledge pipeline, see
-[docs/ingestion-api.md](docs/ingestion-api.md).
+2. Ask recommendation:
 
-## Notes
+```text
+Best FD for ₹50,000 for 1 year
+```
 
-- FD rates and guidance are informational and may change over time.
-- Final investment decisions should be verified with official bank sources.
+3. Show guided flow
+
+4. Show comparison workspace
+
+5. Show architecture
+
+---
+
+# Project Structure
+
+```text
+/app
+/lib
+  /rag
+    document-loader
+    text-cleaner
+    semantic-chunker
+    metadata-enricher
+    retriever
+    vector-store
+    embedding-client
+/api
+  /chat
+  /transcribe
+  /ingest
+/scripts
+/docs
+```
+
+---
+
+# Current Limitations
+
+Current version does not yet include:
+
+- live bank API integrations
+- actual FD booking execution
+- personalized user financial profiling
+- production monitoring stack
+
+FD opening flow is currently a guided simulation.
+
+---
+
+# Future Roadmap
+
+Planned improvements:
+
+- live bank integrations
+- real-time FD rate syncing
+- stronger personalization
+- hybrid inference routing
+- expanded financial products
+- richer voice-first experience
+
+---
+
+# Submission Notes
+
+This repository contains:
+
+- working prototype
+- core multilingual FD advisory flow
+- implemented RAG pipeline
+- automated ingestion architecture
+- demo-ready end-to-end functionality
+
+Designed for live laptop demo.
+
+---
+
+# Disclaimer
+
+This project is for informational guidance purposes.
+
+Financial decisions should always be verified against official banking sources.
